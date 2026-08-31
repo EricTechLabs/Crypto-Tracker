@@ -3,7 +3,7 @@
 ## Project
 
 - Project: Crypto Dashboard
-- Repository: `EricLu860623/Crypto`
+- Repository: `EricTechLabs/Crypto`
 - Production branch: `main`
 - Production entry file: `index.html`
 
@@ -24,7 +24,7 @@
 
 發布前必須確認：
 
-- Repository: `EricLu860623/Crypto`
+- Repository: `EricTechLabs/Crypto`
 - Branch: `main`
 - Target file: `index.html`
 
