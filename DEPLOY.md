@@ -3,7 +3,7 @@
 ## Project
 
 - Project: Crypto Dashboard
-- Repository: `EricTechLabs/Crypto`
+- Repository: `EricTechLabs/Crypto-Tracker`
 - Production branch: `main`
 - Production entry file: `index.html`
 
@@ -24,7 +24,7 @@
 
 發布前必須確認：
 
-- Repository: `EricTechLabs/Crypto`
+- Repository: `EricTechLabs/Crypto-Tracker`
 - Branch: `main`
 - Target file: `index.html`
 
