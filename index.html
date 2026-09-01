@@ -24,6 +24,7 @@ header,.section-head,.card-foot,.coin-top,.modal-head,.advice-top,.sort-row{disp
 header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select:none}.sort-row.dragging{position:relative;z-index:3;background:#1b2a4a;border-color:var(--cyan);box-shadow:0 12px 28px rgba(0,0,0,.45);transform:scale(1.025);border-radius:8px}.handle{touch-action:none}.record-range,.range-custom{display:flex;gap:12px!important}.record-range input,.range-custom input{flex:1;width:0;min-width:0}
 .sort-row.dragging{opacity:1}
 .range-custom{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}.range-custom .field{min-width:0}.range-custom .field input{width:100%!important;min-width:0!important}.trend-point{fill:transparent!important;stroke:transparent!important}.trend-point:hover,.trend-point:focus,.trend-point.selected{fill:#fff!important;stroke:#57d9ff!important;stroke-width:3!important}
+.range-custom{display:flex!important;width:100%!important}.range-custom .field{flex:1 1 0!important;width:0!important;min-width:0!important;overflow:hidden}.range-custom .field input{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
 </style>
 </head>
 <body>
@@ -128,5 +129,4 @@ bindSortTouch();bindTrendTouch();
 </script>
 </body>
 </html>
-
 
