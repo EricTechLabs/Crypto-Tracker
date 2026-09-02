@@ -49,5 +49,6 @@
 - Branch
 - 更新的檔案
 - Commit SHA
+- Commit 訊息
 - 更新是否成功
 - GitHub Pages 將依既有設定自動重新部署
