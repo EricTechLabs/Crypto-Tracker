@@ -228,7 +228,7 @@ function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)
 (() => {
   const cloud=window.__cryptoTrackerSupabase;
   let portfolio=null,remoteAssets=new Map(),remoteTx=new Map(),ready=false,timer=null,syncing=false;
-  const setCloudStatus=(text,error=false)=>{const status=document.getElementById('statusText'),dot=document.getElementById('statusDot');if(status)status.textContent=text;if(dot)dot.className=error?'dot err':'dot';};
+  const setCloudStatus=(text,error=false,ok=false)=>{const status=document.getElementById('statusText'),dot=document.getElementById('statusDot');if(status)status.textContent=text;if(dot)dot.className=error?'dot err':ok?'dot ok':'dot';};
   const setCloudBusy=busy=>document.querySelectorAll('#refreshBtn,#configBtn,#sortBtn,#dbBtn,#addBottomBtn,#allRecordsBtn').forEach(button=>{if(button)button.disabled=busy;});
   const assetData=c=>{const info=coinInfo(c.id);return{asset_key:c.id,symbol:c.symbol||info.symbol,name:c.name||info.name,coingecko_id:c.coingecko||info.coingecko||null,is_watch:!!c.watch,target_weight:Number(state.targets[c.id])||0,sort_order:state.coins.indexOf(c)}};
   async function loadCloud(){
@@ -249,7 +249,7 @@ function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)
     state.cash=Number(p.cash)||0;state.targetTotal=Number(p.target_total)||0;
     if(state.transactions.length)await rebuildPortfolioTrend('雲端資料載入');else{recordSnapshot();save();}
     ready=true;render();refresh();
-    setCloudBusy(false);setCloudStatus('已同步雲端資料');
+    setCloudBusy(false);setCloudStatus('已同步雲端資料',false,true);
   }
   async function syncCloud(){
     if(!ready||syncing||!portfolio)return;syncing=true;setCloudBusy(true);setCloudStatus('正在同步雲端資料…');
@@ -269,7 +269,7 @@ function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)
         const {data,error}=await cloud.from('transactions').insert({id:t.id,portfolio_id:portfolio.id,portfolio_asset_id:asset.id,trade_type:t.type,traded_on:t.date,quantity:t.qty,price:t.price,fee:t.fee||0,note:t.note||null}).select().single();
         if(error)throw error;remoteTx.set(t.id,data);
       }
-      setCloudStatus('已同步雲端資料');
+      setCloudStatus('已同步雲端資料',false,true);
     }catch(error){console.error(error);setCloudStatus('雲端同步失敗：'+error.message,true);}
     finally{syncing=false;setCloudBusy(false);}
   }
