@@ -186,10 +186,6 @@ function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)
     gate.hidden=true;
     const status=document.getElementById('statusText');
     if(status)status.textContent='已登入 '+profile.username+' · '+portfolio.name;
-    const note=document.createElement('p');
-    note.className='data-note';
-    note.textContent='已建立並連接雲端 portfolio；幣種、交易與現金會同步到 Supabase。';
-    document.querySelector('main').prepend(note);
   }
   async function loadAccount(){
     const {data:{user}}=await supabase.auth.getUser();
