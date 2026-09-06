@@ -41,7 +41,7 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 </head>
 <body>
 <main>
-<header><div><h1><span class="brand-crypto">CRYPTO</span><span class="brand-sep">-</span><span class="brand-tracker">TRACKER</span></h1><p class="subtitle">加密貨幣資產追蹤</p><div class="status"><span id="statusDot" class="dot"></span><span id="statusText">準備更新</span></div></div><div class="actions"><button class="btn primary" id="refreshBtn">↻ 刷新行情</button><button class="btn ghost" id="configBtn">配置設定</button><button class="btn ghost" id="sortBtn">排序</button><button class="btn ghost" id="dbBtn">資料庫管理</button><input id="importFile" type="file" accept="application/json" hidden></div></header>
+<header><div><h1><span class="brand-crypto">CRYPTO</span><span class="brand-sep">-</span><span class="brand-tracker">TRACKER</span></h1><p class="subtitle">加密貨幣資產追蹤</p><div class="status"><span id="statusDot" class="dot"></span><span id="statusText">準備更新</span></div></div><div class="actions"><button class="btn primary" id="refreshBtn">↻ 刷新行情</button><button class="btn ghost" id="configBtn">配置設定</button><button class="btn ghost" id="sortBtn">排序</button><button class="btn ghost" id="dbBtn">設定</button></div></header>
 <div id="error" class="error"></div><div id="configWarning" class="config-warning"></div>
 <section class="summary"><div class="stat"><div class="label">目前總資產</div><div class="value" id="totalValue">$0.00</div></div><div class="stat"><div class="label">已投入成本</div><div class="value" id="totalCost">$0.00</div></div><div class="stat"><div class="label">未實現損益</div><div class="value" id="totalPnl">$0.00</div></div><div class="stat"><div class="label">持倉報酬率</div><div class="value" id="totalRoi">—</div></div><div class="stat"><label class="label" for="targetInput">投資組合總目標（USDT）</label><input id="targetInput" type="number" min="0" step="any" inputmode="decimal"></div><div class="stat"><label class="label" for="cashInput">保留 USDT／現金</label><input id="cashInput" type="number" min="0" step="any" inputmode="decimal"></div></section>
 <section class="overview"><div class="panel"><h2>目前資產配置</h2><div class="chart-wrap"><div class="donut" id="donut"></div><div class="legend" id="legend"></div></div></div><div class="panel"><h2>已投入加密貨幣配置</h2><div class="allocation-box" id="allocations"></div><p class="data-note">配置以交易紀錄自動計算的加權平均成本計算；目前資產配置則以最新市值計算。觀察中的幣種不參與配置計算。</p></div></section>
@@ -53,17 +53,17 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 <div class="modal" id="coinModal"><div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">新增幣種</h2><p class="muted">可選常用幣種，也可自行輸入 Binance USDT 交易對代號。</p></div><button class="close" data-close="coinModal">×</button></div><div class="form-grid"><div class="field"><label for="coinSelect">常用幣種</label><select id="coinSelect"></select></div><div class="field"><label for="customSymbol">自訂代號</label><input id="customSymbol" placeholder="例如 DOGE、SUI、ARB" maxlength="12"></div></div><p class="note">新增的自訂幣種會先給 0% 目標配置；請到「配置設定」把總和調整為 100%。</p><div class="modal-actions"><button class="btn ghost" data-close="coinModal">取消</button><button class="btn primary" id="confirmAddCoin">加入幣種</button></div></div></div>
 <div class="modal" id="configModal"><div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">配置設定</h2><p class="muted">觀察中的幣種不會出現在這裡；合計必須剛好 100%。</p></div><button class="close" data-close="configModal">×</button></div><div class="preset-box"><h3>一鍵套用</h3><div class="preset-row"><button class="btn small" data-preset="steady">穩健型</button><button class="btn small" data-preset="balanced">平衡型</button><button class="btn small" data-preset="growth">進取型</button></div><p class="note">BTC / ETH 固定為主要比例，其他非觀察幣平均分配剩餘比例。</p></div><div id="targetList" class="target-list"></div><div class="total-line"><span>目前合計</span><strong id="targetTotalPct">0%</strong></div><div id="targetMessage" class="config-warning" style="margin-top:12px"></div><div class="modal-actions"><button class="btn ghost" data-close="configModal">取消</button><button class="btn primary" id="saveConfigBtn">儲存配置</button></div></div></div>
 <div class="modal" id="sortModal"><div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">幣種排序</h2><p class="muted">按住右側三條線拖曳，儲存後同步卡片與配置設定順序。</p></div><button class="close" data-close="sortModal">×</button></div><div id="sortList" class="sort-list"></div><div class="modal-actions"><button class="btn ghost" data-close="sortModal">取消</button><button class="btn primary" id="saveSortBtn">儲存排序</button></div></div></div>
-<div class="modal" id="dbModal"><div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">資料庫管理</h2><p class="muted">管理本機保存的備份、匯入與清空資料。</p></div><button class="close" data-close="dbModal">×</button></div><div class="db-grid"><button class="btn" id="exportBtn">匯出備份</button><button class="btn" id="importBtn">匯入備份</button><button class="btn danger" id="clearDataBtn">清空本機資料</button></div><p class="note">清空本機資料會移除幣種、交易紀錄、配置設定、圖示與每日走勢快照。</p></div></div>
+<div class="modal" id="dbModal"><div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">設定</h2><p class="muted">管理帳戶與目前投資組合資料。</p></div><button class="close" data-close="dbModal">×</button></div><div class="db-grid"><button class="btn danger" id="clearDataBtn">清空投資組合</button></div><p class="note">刪除目前投資組合的所有幣種與交易紀錄，並重設現金與總目標為 0。登入帳號與使用者名稱會保留。</p></div></div>
 <div class="modal" id="allRecordsModal"><div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">交易紀錄</h2><p class="muted">可同時選擇多個幣種、交易類型與日期範圍。</p></div><button class="close" data-close="allRecordsModal">×</button></div><div class="record-filters"><div><span class="record-filter-label">篩選幣種（可複選）</span><div class="filter-actions"><button class="btn small ghost" type="button" id="selectAllCoinsBtn">全選</button><button class="btn small ghost" type="button" id="clearAllCoinsBtn">清除</button></div><div class="coin-filter-list" id="recordCoinFilters"></div></div><div class="form-grid"><div class="field"><label for="recordTypeFilter">交易類型</label><select id="recordTypeFilter"><option value="all">全部</option><option value="buy">買進</option><option value="sell">賣出</option></select></div><div class="field"><label>日期範圍</label><div class="record-range"><input id="recordDateFrom" type="date"><input id="recordDateTo" type="date"></div></div></div></div><div class="record-summary" id="recordSummary"></div><div id="allRecordsView"></div></div></div>
 <div class="modal" id="trendRangeModal"><div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">日期範圍</h2><p class="muted">選擇走勢圖要查看的資料期間。</p></div><button class="close" data-close="trendRangeModal">×</button></div><div class="range-options"><button class="btn range-option" data-range-choice="7">7天</button><button class="btn range-option" data-range-choice="30">30天</button><button class="btn range-option" data-range-choice="90">90天</button><button class="btn range-option" data-range-choice="180">180天</button><button class="btn range-option" data-range-choice="all">全部</button><button class="btn range-option" data-range-choice="custom">自定義</button></div><div class="range-preview" id="rangePreview"></div><div class="range-custom" id="rangeCustom" hidden><div class="field"><label for="trendDateFrom">開始日期</label><input id="trendDateFrom" type="date"></div><div class="field"><label for="trendDateTo">結束日期</label><input id="trendDateTo" type="date"></div></div><div class="modal-actions"><button class="btn ghost" data-close="trendRangeModal">取消</button><button class="btn primary" id="confirmTrendRange">確認</button></div></div></div>
 <script>
-const KEY='crypto-dashboard-v5',LEGACY_KEYS=['crypto-dashboard-v4','crypto-dashboard-v3','crypto-dashboard-v2','crypto-dashboard-v1'],colors=['#57d9ff','#a98cff','#55d69b','#f6c85f','#ff7287','#f28dff','#85e0d0','#ff9e6d','#76a8ff','#b8de6f'];
+const KEY='crypto-dashboard-supabase-v1',colors=['#57d9ff','#a98cff','#55d69b','#f6c85f','#ff7287','#f28dff','#85e0d0','#ff9e6d','#76a8ff','#b8de6f'];
 const catalog={bitcoin:{symbol:'BTC',name:'Bitcoin',coingecko:'bitcoin'},ethereum:{symbol:'ETH',name:'Ethereum',coingecko:'ethereum'},ripple:{symbol:'XRP',name:'XRP',coingecko:'ripple'},solana:{symbol:'SOL',name:'Solana',coingecko:'solana'},cardano:{symbol:'ADA',name:'Cardano',coingecko:'cardano'},binancecoin:{symbol:'BNB',name:'BNB',coingecko:'binancecoin'},chainlink:{symbol:'LINK',name:'Chainlink',coingecko:'chainlink'},polkadot:{symbol:'DOT',name:'Polkadot',coingecko:'polkadot'},'avalanche-2':{symbol:'AVAX',name:'Avalanche',coingecko:'avalanche-2'}};
 const defaultTargets={bitcoin:.7,ethereum:.2,ripple:.05,solana:.05},presets={steady:{bitcoin:.7,ethereum:.2,rest:.1},balanced:{bitcoin:.5,ethereum:.3,rest:.2},growth:{bitcoin:.4,ethereum:.25,rest:.35}},tolerance=.05,$=id=>document.getElementById(id),money=n=>Number.isFinite(n)?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—',pct=n=>Number.isFinite(n)?(n>=0?'+':'')+n.toFixed(2)+'%':'—',fmtQty=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:8});
 let state=loadState(),activeCoinId=null,sortDraft=[],sortDraggedId=null;
-function defaultState(){return{coins:[{id:'bitcoin'},{id:'ethereum'},{id:'ripple'},{id:'solana'}],prices:{},transactions:[],cash:0,targetTotal:0,targets:{...defaultTargets},icons:{},snapshots:[],trendMetric:'total',trendRange:'30',trendFrom:'',trendTo:''};}
-function loadState(){let raw=localStorage.getItem(KEY);if(!raw)for(const key of LEGACY_KEYS){raw=localStorage.getItem(key);if(raw)break;}return JSON.parse(raw||'null')||defaultState();}
-function normalize(){state.coins=Array.isArray(state.coins)?state.coins:[];state.prices=state.prices||{};state.transactions=Array.isArray(state.transactions)?state.transactions:[];state.icons=state.icons||{};state.snapshots=Array.isArray(state.snapshots)?state.snapshots:[];state.trendBackups=Array.isArray(state.trendBackups)?state.trendBackups:[];state.historicalPrices=state.historicalPrices&&typeof state.historicalPrices==='object'?state.historicalPrices:{};state.trendMetric=state.trendMetric||'total';if(['day','week','month','year'].includes(state.trendRange))state.trendRange='30';state.trendRange=state.trendRange||'30';state.trendFrom=state.trendFrom||'';state.trendTo=state.trendTo||'';state.cash=Math.max(0,Number(state.cash)||0);state.targetTotal=Math.max(0,Number(state.targetTotal)||0);state.targets=state.targets&&typeof state.targets==='object'?state.targets:{...defaultTargets};if(!Object.keys(state.targets).length)state.targets={...defaultTargets};state.coins.forEach(c=>{if(!(c.id in state.targets)&&!c.watch)state.targets[c.id]=0;});for(const c of state.coins){if((Number(c.qty)>0||Number(c.cost)>0)&&!state.transactions.some(t=>t.coinId===c.id)){state.transactions.push({id:crypto.randomUUID(),coinId:c.id,type:'buy',date:new Date().toISOString().slice(0,10),qty:Number(c.qty)||0,price:(Number(c.cost)||0)/(Number(c.qty)||1),fee:0,note:'從舊版持倉匯入'});}}}
+function defaultState(){return{coins:[],prices:{},transactions:[],cash:0,targetTotal:0,targets:{},icons:{},snapshots:[],trendMetric:'total',trendRange:'30',trendFrom:'',trendTo:''};}
+function loadState(){return JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();}
+function normalize(){state.coins=Array.isArray(state.coins)?state.coins:[];state.prices=state.prices||{};state.transactions=Array.isArray(state.transactions)?state.transactions:[];state.icons=state.icons||{};state.snapshots=Array.isArray(state.snapshots)?state.snapshots:[];state.trendBackups=Array.isArray(state.trendBackups)?state.trendBackups:[];state.historicalPrices=state.historicalPrices&&typeof state.historicalPrices==='object'?state.historicalPrices:{};state.trendMetric=state.trendMetric||'total';if(['day','week','month','year'].includes(state.trendRange))state.trendRange='30';state.trendRange=state.trendRange||'30';state.trendFrom=state.trendFrom||'';state.trendTo=state.trendTo||'';state.cash=Math.max(0,Number(state.cash)||0);state.targetTotal=Math.max(0,Number(state.targetTotal)||0);state.targets=state.targets&&typeof state.targets==='object'?state.targets:{...defaultTargets};if(!Object.keys(state.targets).length)state.targets={...defaultTargets};state.coins.forEach(c=>{if(!(c.id in state.targets)&&!c.watch)state.targets[c.id]=0;});}
 function save(){localStorage.setItem(KEY,JSON.stringify(state));}
 function coinInfo(id){return catalog[id]||state.coins.find(c=>c.id===id)||{id,symbol:id.toUpperCase(),name:id.toUpperCase()};}
 function activeCoins(){return state.coins.filter(c=>!c.watch);}
@@ -129,9 +129,8 @@ function renderAllRecords(){const selected=[...document.querySelectorAll('#recor
 function trendSeries(){const metric=state.trendMetric||'total',range=state.trendRange||'30',bounds=trendBounds(range),snaps=[...state.snapshots].sort((a,b)=>a.date.localeCompare(b.date));if(!snaps.length)return[];const out=[],first=snaps[0];let last=first,idx=0;while(idx<snaps.length&&snaps[idx].date<=todayKey(bounds.start)){last=snaps[idx];idx++;}for(let d=bounds.start;d<=bounds.end;d=addDays(d,1)){const key=todayKey(d);while(idx<snaps.length&&snaps[idx].date<=key){last=snaps[idx];idx++;}out.push({date:key,value:Number(last[metric])||0});}return out;}
 function bindTrendTouch(){const box=$('trendChart');box.addEventListener('touchmove',e=>{const t=e.touches[0],svg=box.querySelector('svg'),line=box.querySelector('#trendHoverLine');if(!t||!svg||!line)return;e.preventDefault();const circles=[...svg.querySelectorAll('.trend-point')];if(!circles.length)return;const r=svg.getBoundingClientRect(),x=t.clientX,nearest=circles.reduce((best,c)=>Math.abs((r.left+Number(c.getAttribute('cx'))/900*r.width)-x)<Math.abs((r.left+Number(best.getAttribute('cx'))/900*r.width)-x)?c:best,circles[0]),cx=Number(nearest.getAttribute('cx'));line.setAttribute('x1',cx);line.setAttribute('x2',cx);line.setAttribute('display','');updateTrendReadout(nearest.dataset.date);},{passive:false});box.addEventListener('touchend',()=>{const line=box.querySelector('#trendHoverLine');if(line)line.setAttribute('display','none');updateTrendReadout(todayKey());});}
 function openDb(){$('dbModal').classList.add('show');}
-function clearData(){if(!confirm('這會清空本機保存的幣種、交易紀錄、配置、圖示與走勢資料。確定要繼續嗎？'))return;if(!confirm('請再次確認：清空後無法復原，除非你有匯出備份。'))return;[KEY,...LEGACY_KEYS].forEach(key=>localStorage.removeItem(key));state=defaultState();normalize();save();close('dbModal');$('statusDot').className='dot';$('statusText').textContent='本機資料已清空';$('updatedAt').textContent='尚未更新';render();}
 function close(id){$(id).classList.remove('show');}
-$('refreshBtn').addEventListener('click',refresh);$('addBottomBtn').addEventListener('click',openCoinModal);$('confirmAddCoin').addEventListener('click',addCoin);$('configBtn').addEventListener('click',openConfig);$('sortBtn').addEventListener('click',openSort);$('dbBtn').addEventListener('click',openDb);$('allRecordsBtn').addEventListener('click',openAllRecords);$('trendRangeBtn').addEventListener('click',openTrendRange);$('confirmTrendRange').addEventListener('click',confirmTrendRange);$('clearDataBtn').addEventListener('click',clearData);$('saveSortBtn').addEventListener('click',saveSort);$('saveConfigBtn').addEventListener('click',saveConfig);document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));document.querySelectorAll('[data-trend-metric]').forEach(b=>b.addEventListener('click',()=>{state.trendMetric=b.dataset.trendMetric;save();render();}));document.querySelectorAll('[data-range-choice]').forEach(b=>b.addEventListener('click',()=>{window.trendDraftRange=b.dataset.rangeChoice;updateRangePreview();}));$('trendDateFrom').addEventListener('change',e=>{window.trendDraftFrom=e.target.value;updateRangePreview();});$('trendDateTo').addEventListener('change',e=>{window.trendDraftTo=e.target.value;updateRangePreview();});$('cashInput').addEventListener('input',e=>{state.cash=Math.max(0,+e.target.value||0);save();render();});$('targetInput').addEventListener('input',e=>{state.targetTotal=Math.max(0,+e.target.value||0);save();render();});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));$('showRecordsBtn').addEventListener('click',()=>openTrade(activeCoinId,true));$('tradeForm').addEventListener('submit',async e=>{e.preventDefault();const t={id:crypto.randomUUID(),coinId:activeCoinId,type:$('tradeType').value,date:$('tradeDate').value,qty:+$('tradeQty').value,price:+$('tradePrice').value,fee:+$('tradeFee').value||0,note:$('tradeNote').value.trim()},h=holdings(activeCoinId);if(!t.date||!(t.qty>0)||!(t.price>=0))return;if(t.type==='sell'&&t.qty>h.qty){alert('賣出數量不能大於目前持有數量。');return;}state.transactions.push(t);save();close('tradeModal');await rebuildPortfolioTrend('新增交易紀錄');render();});$('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='crypto-portfolio-backup.json';a.click();URL.revokeObjectURL(a.href);});$('importBtn').addEventListener('click',()=>$('importFile').click());$('importFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.coins))throw Error();state=x;normalize();save();close('dbModal');await rebuildPortfolioTrend('匯入交易備份');render();refresh();}catch{alert('備份檔格式不正確。');}};r.readAsText(f);e.target.value='';});function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)||state.snapshots.at(-1),metric=state.trendMetric||'total';if(!$('trendReadout'))return;if(!s){$('trendReadout').innerHTML='';return;}const label=metric==='unrealized'?'未實現收益':metric==='profit'?'總收益':'資產',value=Number(s[metric])||0,shownDate=(date||s.date||'').replace(/-/g,'/');$('trendReadout').innerHTML=`<span>${label}<strong class="${value>=0?'positive':'negative'}">${money(value)}　｜　${shownDate}</strong></span>`;}
+$('refreshBtn').addEventListener('click',refresh);$('addBottomBtn').addEventListener('click',openCoinModal);$('confirmAddCoin').addEventListener('click',addCoin);$('configBtn').addEventListener('click',openConfig);$('sortBtn').addEventListener('click',openSort);$('dbBtn').addEventListener('click',openDb);$('allRecordsBtn').addEventListener('click',openAllRecords);$('trendRangeBtn').addEventListener('click',openTrendRange);$('confirmTrendRange').addEventListener('click',confirmTrendRange);$('saveSortBtn').addEventListener('click',saveSort);$('saveConfigBtn').addEventListener('click',saveConfig);document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));document.querySelectorAll('[data-trend-metric]').forEach(b=>b.addEventListener('click',()=>{state.trendMetric=b.dataset.trendMetric;save();render();}));document.querySelectorAll('[data-range-choice]').forEach(b=>b.addEventListener('click',()=>{window.trendDraftRange=b.dataset.rangeChoice;updateRangePreview();}));$('trendDateFrom').addEventListener('change',e=>{window.trendDraftFrom=e.target.value;updateRangePreview();});$('trendDateTo').addEventListener('change',e=>{window.trendDraftTo=e.target.value;updateRangePreview();});$('cashInput').addEventListener('input',e=>{state.cash=Math.max(0,+e.target.value||0);save();render();});$('targetInput').addEventListener('input',e=>{state.targetTotal=Math.max(0,+e.target.value||0);save();render();});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));$('showRecordsBtn').addEventListener('click',()=>openTrade(activeCoinId,true));$('tradeForm').addEventListener('submit',async e=>{e.preventDefault();const t={id:crypto.randomUUID(),coinId:activeCoinId,type:$('tradeType').value,date:$('tradeDate').value,qty:+$('tradeQty').value,price:+$('tradePrice').value,fee:+$('tradeFee').value||0,note:$('tradeNote').value.trim()},h=holdings(activeCoinId);if(!t.date||!(t.qty>0)||!(t.price>=0))return;if(t.type==='sell'&&t.qty>h.qty){alert('賣出數量不能大於目前持有數量。');return;}state.transactions.push(t);save();close('tradeModal');await rebuildPortfolioTrend('新增交易紀錄');render();});function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)||state.snapshots.at(-1),metric=state.trendMetric||'total';if(!$('trendReadout'))return;if(!s){$('trendReadout').innerHTML='';return;}const label=metric==='unrealized'?'未實現收益':metric==='profit'?'總收益':'資產',value=Number(s[metric])||0,shownDate=(date||s.date||'').replace(/-/g,'/');$('trendReadout').innerHTML=`<span>${label}<strong class="${value>=0?'positive':'negative'}">${money(value)}　｜　${shownDate}</strong></span>`;}
 function niceTrendStep(raw){const p=Math.pow(10,Math.floor(Math.log10(Math.max(raw,1)))),n=raw/p,b=n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10;return b*p;}
 function trendScale(v){const lo=Math.min(...v),hi=Math.max(...v),spread=Math.max(hi-lo,Math.abs(hi||1)*.02,1),pad=spread*.1;let step=niceTrendStep((spread+pad*2)/4),bottom=Math.floor((lo-pad)/step)*step,top=bottom+step*4;while(top<hi+pad){step=niceTrendStep(step*1.01);bottom=Math.floor((lo-pad)/step)*step;top=bottom+step*4;}return{bottom,top,ticks:[top,top-step,top-step*2,top-step*3,bottom]};}
 function trendAxisMoney(value){const n=Number(value)||0,sign=n<0?'-':'',abs=Math.abs(n);return abs>=1000?sign+'$'+(abs/1000).toFixed(2)+'k':money(n);}
@@ -144,6 +143,264 @@ useTradeRecordDateLayout();
 async function rebuildPortfolioTrend(reason='交易紀錄變更',affectedDate=''){const tx=[...state.transactions].sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id))),today=todayKey(),startDate=[affectedDate,tx[0]?.date].filter(Boolean).sort()[0]||today,first=dateFromKey(startDate),end=dateFromKey(today),coins=activeCoins(),priceMaps={},warnings=[];setRebuildNotice('正在依歷史交易重新計算走勢…');try{if(tx.length)for(const coin of coins)priceMaps[coin.id]=await fetchDailyPrices(coin,first,end);}catch(error){setRebuildNotice('走勢重算失敗：'+error.message,true);$('error').textContent='走勢未變更：'+error.message;$('error').style.display='block';return false;}const before=(state.snapshots||[]).filter(s=>s.date<startDate),rebuilt=[],book=Object.fromEntries(coins.map(c=>[c.id,{qty:0,cost:0,realized:0}]));let cursor=0;for(let day=first;day<=end;day=addDays(day,1)){const date=todayKey(day);while(cursor<tx.length&&tx[cursor].date===date){const t=tx[cursor++],b=book[t.coinId];if(!b)continue;const q=Number(t.qty)||0,p=Number(t.price)||0,f=Number(t.fee)||0;if(t.type==='buy'){b.qty+=q;b.cost+=q*p+f;}else if(q<=b.qty+1e-10){const avg=b.qty?b.cost/b.qty:0;b.realized+=q*p-f-q*avg;b.cost-=q*avg;b.qty-=q;if(b.qty<1e-10){b.qty=0;b.cost=0;}}else warnings.push(date+' · '+coinInfo(t.coinId).symbol+' 賣出數量大於當日持倉');}let value=0,cost=0,realized=0;for(const coin of coins){const b=book[coin.id];cost+=b.cost;realized+=b.realized;if(b.qty<=0)continue;const price=date===today&&Number(state.prices[coin.id]?.price)>0?Number(state.prices[coin.id].price):Number(priceMaps[coin.id]?.[date]);if(!(price>0)){warnings.push(date+' · 缺少 '+(coin.symbol||coinInfo(coin.id).symbol)+' 的 Binance 日線收盤價');break;}value+=b.qty*price;}if(warnings.length)break;const unrealized=value-cost;rebuilt.push({date,total:value+state.cash,unrealized,profit:unrealized+realized,cash:state.cash,source:'rebuild',updated:Date.now()});}if(warnings.length){setRebuildNotice('走勢未重算：歷史資料不完整',true);$('error').textContent='走勢維持原資料。'+warnings.slice(0,8).join('；');$('error').style.display='block';return false;}saveTrendBackup(reason);state.snapshots=[...before,...rebuilt];save();$('error').style.display='none';setRebuildNotice('歷史走勢已重新計算');return true;}
 function renderRecords(){const tx=state.transactions.filter(t=>t.coinId===activeCoinId).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('recordsView').innerHTML=tx.length?tx.map(t=>`<div class="record"><div><strong>${t.type==='buy'?'買進':'賣出'} · ${esc(t.date)}</strong><small>${esc(t.note)||'—'}</small></div><div class="record-value">${fmtQty(t.qty)} @ ${money(+t.price)}<br><small>手續費 ${money(+t.fee||0)}</small><button class="delete-record" data-delete-record="${t.id}">刪除</button></div></div>`).join(''):'<div class="record-empty">尚無交易紀錄</div>';document.querySelectorAll('[data-delete-record]').forEach(b=>b.addEventListener('click',async()=>{const deleted=state.transactions.find(t=>t.id===b.dataset.deleteRecord);if(!deleted||!confirm('確定刪除此筆交易？'))return;state.transactions=state.transactions.filter(t=>t.id!==deleted.id);save();await rebuildPortfolioTrend('刪除交易紀錄',deleted.date);render();renderRecords();}));}
 function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)||state.snapshots.at(-1),metric=state.trendMetric||'total';if(!$('trendReadout'))return;if(!s){$('trendReadout').innerHTML='';return;}const label=metric==='unrealized'?'未實現收益':metric==='profit'?'總收益':'資產',value=Number(s[metric])||0,shownDate=(date||s.date||'').replace(/-/g,'/');$('trendReadout').innerHTML=`<span class="trend-read-label">${label}</span><strong class="trend-read-money ${value>=0?'positive':'negative'}">${money(value)}</strong><span class="trend-read-date">${shownDate}</span>`;}
+</script>
+<style>
+.auth-gate{position:fixed;z-index:60;inset:0;display:grid;place-items:center;padding:20px;background:rgba(3,6,14,.9);backdrop-filter:blur(9px)}.auth-gate[hidden]{display:none}.auth-card{width:min(420px,100%);padding:24px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(160deg,rgba(23,34,58,.98),rgba(12,20,39,.98))}.auth-card h2{margin-bottom:8px}.auth-card p{line-height:1.55}.auth-form{display:grid;gap:12px;margin-top:18px}.auth-form label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.auth-label-row{display:flex;justify-content:space-between;align-items:center;gap:10px}.auth-inline-link{border:0;padding:0;background:transparent;color:var(--cyan);font:inherit;font-size:12px;font-weight:700;cursor:pointer}.auth-inline-link:hover{text-decoration:underline}.auth-form input{width:100%;background:#0c1427;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}.auth-message{min-height:20px;margin:12px 0 0;color:var(--yellow);font-size:12px}.auth-message.err{color:#ffb1bd}
+</style>
+<section id="authGate" class="auth-gate"><div class="auth-card"><h1 id="authHeading" class="auth-brand"><span class="brand-crypto">CRYPTO</span><span class="brand-sep">-</span><span class="brand-tracker">TRACKER</span></h1><p id="authSubtitle" class="muted">加密貨幣資產追蹤</p><form id="signInForm" class="auth-form"><label>Email<input id="signInEmail" type="email" autocomplete="email" required></label><label>密碼<input id="signInPassword" type="password" autocomplete="current-password" minlength="6" required></label><div class="auth-label-row"><button class="btn primary" type="submit">登入</button><button class="auth-inline-link" type="button" data-auth-mode="signup">註冊</button></div></form><form id="signUpForm" class="auth-form" hidden><label>Username<input id="usernameInput" type="text" autocomplete="username" minlength="3" maxlength="24" pattern="[a-z0-9_]{3,24}" placeholder="例如 eric" required></label><label>Email<input id="signUpEmail" type="email" autocomplete="email" required></label><label>密碼<input id="signUpPassword" type="password" autocomplete="new-password" minlength="6" required></label><button class="btn primary" type="submit">註冊</button><button class="auth-inline-link" type="button" data-auth-mode="signin">已有帳號？登入</button></form><p id="authMessage" class="auth-message"></p></div></section>
+<style>.auth-form[hidden]{display:none}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(() => {
+  const supabase=window.supabase.createClient("https://gxxockhumhtcuekxelrn.supabase.co","sb_publishable_dn4Fdc2yzJTwtZSYnisKCA_vp0WvONZ");
+  const gate=document.getElementById('authGate');
+  const message=document.getElementById('authMessage');
+  const signIn=document.getElementById('signInForm').cloneNode(true);
+  const signUp=document.getElementById('signUpForm').cloneNode(true);
+  document.getElementById('signInForm').replaceWith(signIn);
+  document.getElementById('signUpForm').replaceWith(signUp);
+  const heading=document.getElementById('authHeading');
+  const subtitle=document.getElementById('authSubtitle');
+  function showMessage(text,error=false){message.textContent=text;message.className=error?'auth-message err':'auth-message';}
+  function setMode(mode){
+    const signup=mode==='signup';
+    signIn.hidden=signup;signUp.hidden=!signup;
+    heading.innerHTML=signup?'建立帳號':'<span class="brand-crypto">CRYPTO</span><span class="brand-sep">-</span><span class="brand-tracker">TRACKER</span>';
+    subtitle.textContent=signup?'設定 username、Email 與密碼後建立新帳號。':'加密貨幣資產追蹤';
+    showMessage('');
+  }
+  function openTracker(profile,portfolio){
+    gate.hidden=true;
+    const status=document.getElementById('statusText');
+    if(status)status.textContent='已登入 '+profile.username+' · '+portfolio.name;
+    const note=document.createElement('p');
+    note.className='data-note';
+    note.textContent='已建立並連接雲端 portfolio；幣種、交易與現金會同步到 Supabase。';
+    document.querySelector('main').prepend(note);
+  }
+  async function loadAccount(){
+    const {data:{user}}=await supabase.auth.getUser();
+    if(!user)return;
+    const {data:profile}=await supabase.from('profiles').select('*').eq('id',user.id).maybeSingle();
+    const {data:portfolio}=await supabase.from('portfolios').select('*').eq('user_id',user.id).order('created_at').limit(1).maybeSingle();
+    if(profile&&portfolio)openTracker(profile,portfolio);
+  }
+  signIn.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const email=signIn.querySelector('#signInEmail').value;
+    const password=signIn.querySelector('#signInPassword').value;
+    showMessage('登入中…');
+    const {error}=await supabase.auth.signInWithPassword({email,password});
+    if(error){showMessage('Email 或密碼不正確，請重新確認。',true);return;}
+    await loadAccount();
+  });
+  signUp.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const username=signUp.querySelector('#usernameInput').value.trim();
+    const email=signUp.querySelector('#signUpEmail').value;
+    const password=signUp.querySelector('#signUpPassword').value;
+    if(!/^[a-z0-9_]{3,24}$/.test(username)){showMessage('Username 只能是 3–24 個小寫英數或底線。',true);return;}
+    showMessage('建立帳號中…');
+    const {data,error}=await supabase.auth.signUp({email,password,options:{data:{username}}});
+    if(error||!data.user){const raw=String(error?.message||'');const text=error?.message==='User already registered'?'這個 Email 已經註冊過，請直接登入。':/database error|username|unique/i.test(raw)?'這個使用者名稱可能已被使用，請換一個。':'無法建立帳號，請稍後再試。';showMessage(text,true);return;}
+    const user=data.user;
+    await supabase.auth.signOut();
+    setMode('signin');
+    signIn.querySelector('#signInEmail').value=email;
+    showMessage('帳號建立完成，請使用 Email 與密碼登入。');
+  });
+  signIn.querySelector('[data-auth-mode="signup"]').addEventListener('click',()=>setMode('signup'));
+  signUp.querySelector('[data-auth-mode="signin"]').addEventListener('click',()=>setMode('signin'));
+  gate.hidden=false;
+  loadAccount();
+})();
+</script>
+<script>
+(() => {
+  const cloud=window.supabase.createClient("https://gxxockhumhtcuekxelrn.supabase.co","sb_publishable_dn4Fdc2yzJTwtZSYnisKCA_vp0WvONZ");
+  let portfolio=null,remoteAssets=new Map(),remoteTx=new Map(),ready=false,timer=null,syncing=false;
+  const setCloudStatus=(text,error=false)=>{const status=document.getElementById('statusText'),dot=document.getElementById('statusDot');if(status)status.textContent=text;if(dot)dot.className=error?'dot err':'dot';};
+  const setCloudBusy=busy=>document.querySelectorAll('#refreshBtn,#configBtn,#sortBtn,#dbBtn,#addBottomBtn,#allRecordsBtn').forEach(button=>{if(button)button.disabled=busy;});
+  const assetData=c=>{const info=coinInfo(c.id);return{asset_key:c.id,symbol:c.symbol||info.symbol,name:c.name||info.name,coingecko_id:c.coingecko||info.coingecko||null,is_watch:!!c.watch,target_weight:Number(state.targets[c.id])||0,sort_order:state.coins.indexOf(c)}};
+  async function loadCloud(){
+    setCloudBusy(true);setCloudStatus('正在載入雲端資料…');
+    const {data:{user}}=await cloud.auth.getUser();if(!user)return;
+    const {data:p,error}=await cloud.from('portfolios').select('*').eq('user_id',user.id).order('created_at').limit(1).single();
+    if(error){console.error(error);setCloudBusy(false);setCloudStatus('雲端載入失敗：'+error.message,true);return;}portfolio=p;
+    const [{data:assets,error:assetError},{data:tx,error:txError}]=await Promise.all([
+      cloud.from('portfolio_assets').select('*').eq('portfolio_id',p.id).order('sort_order'),
+      cloud.from('transactions').select('*').eq('portfolio_id',p.id).order('traded_on')
+    ]);
+    if(assetError||txError){console.error(assetError||txError);setCloudBusy(false);setCloudStatus('雲端資料載入失敗：'+(assetError||txError).message,true);return;}
+    remoteAssets=new Map((assets||[]).map(a=>[a.asset_key,a]));
+    remoteTx=new Map((tx||[]).map(t=>[t.id,t]));
+    state.coins=(assets||[]).map(a=>({id:a.asset_key,dbId:a.id,symbol:a.symbol,name:a.name,coingecko:a.coingecko_id,watch:a.is_watch}));
+    state.targets=Object.fromEntries((assets||[]).map(a=>[a.asset_key,Number(a.target_weight)||0]));
+    state.transactions=(tx||[]).map(t=>({id:t.id,coinId:(assets||[]).find(a=>a.id===t.portfolio_asset_id)?.asset_key,type:t.trade_type,date:t.traded_on,qty:Number(t.quantity),price:Number(t.price),fee:Number(t.fee),note:t.note||''})).filter(t=>t.coinId);
+    state.cash=Number(p.cash)||0;state.targetTotal=Number(p.target_total)||0;
+    ready=true;render();refresh();
+    setCloudBusy(false);setCloudStatus('已同步雲端資料');
+  }
+  async function syncCloud(){
+    if(!ready||syncing||!portfolio)return;syncing=true;setCloudBusy(true);setCloudStatus('正在同步雲端資料…');
+    try{
+      await cloud.from('portfolios').update({cash:state.cash,target_total:state.targetTotal}).eq('id',portfolio.id);
+      const current=new Map(state.coins.map(c=>[c.id,c]));
+      for(const [key,row] of remoteTx)if(!state.transactions.some(t=>t.id===key)){const {error}=await cloud.from('transactions').delete().eq('id',key);if(error)throw error;remoteTx.delete(key);}
+      for(const [key,row] of remoteAssets)if(!current.has(key)){const {error}=await cloud.from('portfolio_assets').delete().eq('id',row.id);if(error)throw error;remoteAssets.delete(key);}
+      for(const c of state.coins){
+        const payload=assetData(c),existing=remoteAssets.get(c.id);
+        if(existing){const {data,error}=await cloud.from('portfolio_assets').update(payload).eq('id',existing.id).select().single();if(error)throw error;remoteAssets.set(c.id,data);c.dbId=data.id;}
+        else{const {data,error}=await cloud.from('portfolio_assets').insert({...payload,portfolio_id:portfolio.id}).select().single();if(error)throw error;remoteAssets.set(c.id,data);c.dbId=data.id;}
+      }
+      for(const t of state.transactions){
+        if(remoteTx.has(t.id))continue;
+        const asset=remoteAssets.get(t.coinId);if(!asset)throw new Error('找不到交易所屬幣種');
+        const {data,error}=await cloud.from('transactions').insert({id:t.id,portfolio_id:portfolio.id,portfolio_asset_id:asset.id,trade_type:t.type,traded_on:t.date,quantity:t.qty,price:t.price,fee:t.fee||0,note:t.note||null}).select().single();
+        if(error)throw error;remoteTx.set(t.id,data);
+      }
+      setCloudStatus('已同步雲端資料');
+    }catch(error){console.error(error);setCloudStatus('雲端同步失敗：'+error.message,true);}
+    finally{syncing=false;setCloudBusy(false);}
+  }
+  window.save=()=>{if(!ready)return;clearTimeout(timer);setCloudStatus('等待同步…');timer=setTimeout(syncCloud,250);};
+  try{save=window.save;}catch{}
+  const watch=setInterval(async()=>{const {data:{user}}=await cloud.auth.getUser();if(user){clearInterval(watch);await loadCloud();}},300);
+})();
+</script>
+<script>
+(() => {
+  const client=window.supabase.createClient("https://gxxockhumhtcuekxelrn.supabase.co","sb_publishable_dn4Fdc2yzJTwtZSYnisKCA_vp0WvONZ");
+  const dbButton=document.getElementById('dbBtn');
+  if(!dbButton||document.getElementById('logoutBtn'))return;
+  const logoutButton=document.createElement('button');
+  logoutButton.id='logoutBtn';
+  logoutButton.className='btn ghost';
+  logoutButton.textContent='登出';
+  logoutButton.hidden=true;
+  dbButton.insertAdjacentElement('afterend',logoutButton);
+  async function updateVisibility(){
+    const {data:{session}}=await client.auth.getSession();
+    logoutButton.hidden=!session;
+  }
+  logoutButton.addEventListener('click',async()=>{
+    logoutButton.disabled=true;
+    logoutButton.textContent='登出中…';
+    const {error}=await client.auth.signOut();
+    if(error){logoutButton.disabled=false;logoutButton.textContent='登出';alert('登出失敗：'+error.message);return;}
+    location.reload();
+  });
+  client.auth.onAuthStateChange((_event,session)=>{logoutButton.hidden=!session;});
+  updateVisibility();
+})();
+</script>
+<script>
+(() => {
+  const input=document.getElementById('usernameInput');
+  const label=input?.closest('label');
+  if(!input||!label||label.dataset.localized==='1')return;
+  label.dataset.localized='1';
+  if(label.firstChild&&label.firstChild.nodeType===Node.TEXT_NODE)label.firstChild.textContent='使用者名稱';
+  const hint=document.createElement('small');
+  hint.className='muted';
+  hint.textContent='格式：3–24 個小寫英文字母、數字或底線，例如 eric_01；目前不支援中文。';
+  input.insertAdjacentElement('afterend',hint);
+})();
+</script>
+<script>
+(() => {
+  const client=window.supabase.createClient("https://gxxockhumhtcuekxelrn.supabase.co","sb_publishable_dn4Fdc2yzJTwtZSYnisKCA_vp0WvONZ");
+  const dbButton=document.getElementById('dbBtn');
+  const dbModal=document.getElementById('dbModal');
+  const clearOld=document.getElementById('clearDataBtn');
+  if(!dbButton||!dbModal||!clearOld)return;
+  dbButton.textContent='設定';
+  dbModal.querySelector('.modal-title').textContent='設定';
+  dbModal.querySelector('.modal-head p').textContent='管理帳戶與目前投資組合資料。';
+  const accountButton=document.createElement('button');
+  accountButton.className='btn';
+  accountButton.textContent='帳戶';
+  clearOld.parentElement.insertBefore(accountButton,clearOld);
+  clearOld.textContent='清空投資組合';
+  clearOld.className='btn danger';
+  const accountModal=document.createElement('div');
+  accountModal.className='modal';
+  accountModal.id='accountSettingsModal';
+  accountModal.innerHTML='<div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">帳戶</h2><p class="muted">修改使用者名稱或密碼。</p></div><button class="close" type="button">×</button></div><form class="auth-form"><label>使用者名稱<input id="accountUsername" type="text" minlength="3" maxlength="24" pattern="[a-z0-9_]{3,24}" required><small class="muted">格式：3–24 個小寫英文字母、數字或底線。</small></label><label>新密碼（不修改請留白）<input id="accountPassword" type="password" minlength="6" autocomplete="new-password"></label><label>確認新密碼<input id="accountPasswordConfirm" type="password" minlength="6" autocomplete="new-password"></label><p id="accountMessage" class="auth-message"></p><div class="modal-actions"><button class="btn ghost" type="button" data-account-close>取消</button><button class="btn primary" type="submit">儲存變更</button></div></form></div>';
+  document.body.append(accountModal);
+  const accountForm=accountModal.querySelector('form'),accountMessage=accountModal.querySelector('#accountMessage');
+  const showAccountMessage=(text,error=false)=>{accountMessage.textContent=text;accountMessage.className=error?'auth-message err':'auth-message';};
+  accountButton.addEventListener('click',async()=>{const {data:{user}}=await client.auth.getUser();if(!user){showAccountMessage('請先登入。',true);return;}const {data:profile}=await client.from('profiles').select('username').eq('id',user.id).single();accountModal.querySelector('#accountUsername').value=profile?.username||'';accountModal.querySelector('#accountPassword').value='';accountModal.querySelector('#accountPasswordConfirm').value='';showAccountMessage('');accountModal.classList.add('show');});
+  accountModal.querySelectorAll('[data-account-close],.close').forEach(b=>b.addEventListener('click',()=>accountModal.classList.remove('show')));
+  accountForm.addEventListener('submit',async event=>{event.preventDefault();const username=accountModal.querySelector('#accountUsername').value.trim(),password=accountModal.querySelector('#accountPassword').value,confirmPassword=accountModal.querySelector('#accountPasswordConfirm').value;if(!/^[a-z0-9_]{3,24}$/.test(username)){showAccountMessage('使用者名稱格式不正確。',true);return;}if(password!==confirmPassword){showAccountMessage('兩次輸入的新密碼不一致。',true);return;}showAccountMessage('儲存中…');const {data:{user}}=await client.auth.getUser();const {error:profileError}=await client.from('profiles').update({username}).eq('id',user.id);if(profileError){showAccountMessage(profileError.code==='23505'?'這個使用者名稱已被使用，請換一個。':'使用者名稱更新失敗，請稍後再試。',true);return;}if(password){const {error}=await client.auth.updateUser({password});if(error){showAccountMessage('密碼更新失敗：'+error.message,true);return;}}showAccountMessage('帳戶設定已更新。');setTimeout(()=>accountModal.classList.remove('show'),700);});
+  const clearButton=clearOld.cloneNode(true);clearOld.replaceWith(clearButton);
+  clearButton.addEventListener('click',async()=>{if(!window.confirm('確定要清空目前投資組合嗎？'))return;if(!window.confirm('所有幣種、交易紀錄、現金與總目標都會被重設，且無法復原。確定要繼續嗎？'))return;clearButton.disabled=true;clearButton.textContent='清空中…';try{const {data:{user}}=await client.auth.getUser();if(!user)throw new Error('請先登入。');const {data:portfolio,error:portfolioError}=await client.from('portfolios').select('id').eq('user_id',user.id).single();if(portfolioError)throw portfolioError;const {error:txError}=await client.from('transactions').delete().eq('portfolio_id',portfolio.id);if(txError)throw txError;const {error:assetError}=await client.from('portfolio_assets').delete().eq('portfolio_id',portfolio.id);if(assetError)throw assetError;const {error:updateError}=await client.from('portfolios').update({cash:0,target_total:0}).eq('id',portfolio.id);if(updateError)throw updateError;state.coins=[];state.targets={};state.transactions=[];state.cash=0;state.targetTotal=0;render();dbModal.classList.remove('show');const status=document.getElementById('statusText');if(status)status.textContent='投資組合已清空';}catch(error){alert('清空失敗：'+error.message);}finally{clearButton.disabled=false;clearButton.textContent='清空投資組合';}});
+})();
+</script>
+<script>
+(() => {
+  const client=window.supabase.createClient("https://gxxockhumhtcuekxelrn.supabase.co","sb_publishable_dn4Fdc2yzJTwtZSYnisKCA_vp0WvONZ");
+  const modal=document.getElementById('accountSettingsModal');
+  if(!modal)return;
+  modal.innerHTML='<div class="modal-box"><div class="modal-head"><div><h2 class="modal-title">帳戶</h2><p class="muted">帳戶資料與密碼分開管理。</p></div><button class="close" type="button">×</button></div><div class="auth-form"><label>目前帳戶 Email<input id="accountEmail" type="email" disabled></label><form id="usernameForm" class="auth-form"><label>使用者名稱<input id="accountUsername" type="text" minlength="3" maxlength="24" pattern="[a-z0-9_]{3,24}" required><small class="muted">格式：3–24 個小寫英文字母、數字或底線。</small></label><p id="usernameMessage" class="auth-message"></p><button class="btn primary" type="submit">儲存使用者名稱</button></form><form id="passwordForm" class="auth-form"><label>舊密碼<input id="accountOldPassword" type="password" autocomplete="current-password" required></label><label>新密碼<input id="accountPassword" type="password" minlength="6" autocomplete="new-password" required></label><label>確認新密碼<input id="accountPasswordConfirm" type="password" minlength="6" autocomplete="new-password" required></label><p id="passwordMessage" class="auth-message"></p><button class="btn primary" type="submit">修改密碼</button></form></div></div>';
+  const close=()=>modal.classList.remove('show');
+  modal.querySelectorAll('.close').forEach(b=>b.addEventListener('click',close));
+  const accountButton=Array.from(document.querySelectorAll('#dbModal button')).find(b=>b.textContent.trim()==='帳戶');
+  accountButton?.addEventListener('click',async()=>{const {data:{user}}=await client.auth.getUser();if(!user)return;const {data:profile}=await client.from('profiles').select('username').eq('id',user.id).single();modal.querySelector('#accountEmail').value=user.email||'';modal.querySelector('#accountUsername').value=profile?.username||'';modal.classList.add('show');});
+  const usernameMessage=modal.querySelector('#usernameMessage'),passwordMessage=modal.querySelector('#passwordMessage');
+  const show=(el,text,error=false)=>{el.textContent=text;el.className=error?'auth-message err':'auth-message';};
+  modal.querySelector('#usernameForm').addEventListener('submit',async e=>{e.preventDefault();const username=modal.querySelector('#accountUsername').value.trim();if(!/^[a-z0-9_]{3,24}$/.test(username)){show(usernameMessage,'使用者名稱格式不正確。',true);return;}show(usernameMessage,'儲存中…');const {data:{user}}=await client.auth.getUser();const {error}=await client.from('profiles').update({username}).eq('id',user.id);if(error){show(usernameMessage,error.code==='23505'?'這個使用者名稱已被使用，請換一個。':'使用者名稱更新失敗，請稍後再試。',true);return;}show(usernameMessage,'使用者名稱已更新。');});
+  modal.querySelector('#passwordForm').addEventListener('submit',async e=>{e.preventDefault();const oldPassword=modal.querySelector('#accountOldPassword').value,newPassword=modal.querySelector('#accountPassword').value,confirmPassword=modal.querySelector('#accountPasswordConfirm').value;if(newPassword!==confirmPassword){show(passwordMessage,'兩次輸入的新密碼不一致。',true);return;}show(passwordMessage,'驗證舊密碼中…');const {data:{user}}=await client.auth.getUser();if(!user?.email){show(passwordMessage,'找不到目前登入帳號。',true);return;}const {error:verifyError}=await client.auth.signInWithPassword({email:user.email,password:oldPassword});if(verifyError){show(passwordMessage,'舊密碼不正確，無法修改密碼。',true);return;}const {error}=await client.auth.updateUser({password:newPassword});if(error){show(passwordMessage,'密碼更新失敗：'+error.message,true);return;}modal.querySelector('#passwordForm').reset();show(passwordMessage,'密碼已更新。');});
+})();
+</script>
+<style>
+#accountSettingsModal .auth-form label{gap:3px}
+#accountSettingsModal #usernameForm{gap:5px}
+#accountSettingsModal #usernameForm .auth-message:empty{display:none}
+#accountSettingsModal .password-field{position:relative;display:flex;align-items:center}
+#accountSettingsModal .password-field input{padding-right:74px}
+#accountSettingsModal .password-toggle{position:absolute;right:10px;border:0;background:transparent;color:var(--cyan);font-size:12px;cursor:pointer}
+</style>
+<script>
+(() => {
+  const modal=document.getElementById('accountSettingsModal');
+  if(!modal)return;
+  ['accountOldPassword','accountPassword','accountPasswordConfirm'].forEach(id=>{
+    const input=document.getElementById(id);
+    if(!input||input.parentElement.classList.contains('password-field'))return;
+    const wrap=document.createElement('div');wrap.className='password-field';
+    input.replaceWith(wrap);wrap.append(input);
+    const toggle=document.createElement('button');toggle.type='button';toggle.className='password-toggle';toggle.textContent='顯示密碼';
+    toggle.addEventListener('click',()=>{const visible=input.type==='text';input.type=visible?'password':'text';toggle.textContent=visible?'顯示密碼':'隱藏密碼';});
+    wrap.append(toggle);
+  });
+})();
+</script>
+<style>
+#accountSettingsModal #passwordForm .auth-message:empty{display:none}
+#accountSettingsModal #passwordForm>button{margin-top:0}
+</style>
+<script>
+(() => {
+  const client=window.supabase.createClient("https://gxxockhumhtcuekxelrn.supabase.co","sb_publishable_dn4Fdc2yzJTwtZSYnisKCA_vp0WvONZ");
+  const oldButton=document.getElementById('clearDataBtn');
+  if(!oldButton)return;
+  const button=oldButton.cloneNode(true);
+  oldButton.replaceWith(button);
+  button.addEventListener('click',async()=>{
+    if(!window.confirm('確定要清空目前投資組合嗎？'))return;
+    if(!window.confirm('所有幣種、交易紀錄、現金與總目標都會被重設，且無法復原。確定要繼續嗎？'))return;
+    button.disabled=true;button.textContent='清空中…';
+    try{
+      const {error}=await client.rpc('clear_my_portfolio');
+      if(error)throw error;
+      state.coins=[];state.targets={};state.transactions=[];state.cash=0;state.targetTotal=0;save();render();
+      document.getElementById('dbModal')?.classList.remove('show');
+      const status=document.getElementById('statusText');if(status)status.textContent='投資組合已清空';
+    }catch(error){alert('清空失敗：'+error.message);}
+    finally{button.disabled=false;button.textContent='清空投資組合';}
+  });
+})();
 </script>
 </body>
 </html>
