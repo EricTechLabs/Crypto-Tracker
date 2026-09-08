@@ -84,6 +84,15 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 }
 </style>
 </head>
+<style>
+@media(max-width:560px){
+  .section-head{align-items:flex-start;gap:8px}
+  .section-head h2{margin:0;white-space:nowrap;flex-shrink:0}
+  .section-head .section-actions{display:flex;flex:1;min-width:0;flex-direction:column;align-items:flex-end;gap:6px}
+  .section-head #updatedAt{white-space:nowrap;padding-right:10px}
+  .section-head #allRecordsBtn{flex-shrink:0}
+}
+</style>
 <body>
 <main>
 <header><div><h1 class="brand-lockup"><svg class="brand-logo" viewBox="0 0 560 100" role="img" aria-label="CRYPTO-TRACKER"><path class="mark-c" d="M78 18H35C23 18 14 28 14 40v20c0 12 9 22 21 22h43L64 68H39c-5 0-9-4-9-9V41c0-5 4-9 9-9h25z"></path><path class="mark-t" d="M34 43h52L74 55H64v27H48V55H34z"></path><text x="110" y="67" font-size="44" textLength="170" lengthAdjust="spacingAndGlyphs" class="logo-crypto">CRYPTO</text><text x="296" y="67" font-size="44" textLength="24" lengthAdjust="spacingAndGlyphs" class="logo-sep">-</text><text x="330" y="67" font-size="44" textLength="210" lengthAdjust="spacingAndGlyphs" class="logo-tracker">TRACKER</text></svg></h1><p class="subtitle">加密貨幣資產追蹤</p><div class="status"><span id="statusDot" class="dot"></span><span id="statusText">準備更新</span></div></div><div class="actions"><button class="btn primary" id="refreshBtn">↻ 刷新行情</button><button class="btn ghost" id="configBtn">配置設定</button><button class="btn ghost" id="sortBtn">排序</button><button class="btn ghost" id="dbBtn">設定</button></div></header>
