@@ -91,6 +91,25 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 <style>
 .sentiment-meta{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
+<style>
+.market-signals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;align-items:start}
+.market-signal{border:1px solid var(--line);border-radius:8px;min-width:0}
+.market-signal-head{display:flex;align-items:center;gap:6px;padding:10px;list-style:none;min-height:44px}
+.market-signal-head strong{font-size:13px;overflow-wrap:anywhere;min-width:0}
+.market-signal-head .tag{margin-left:auto;font-size:11px;padding:4px 6px;white-space:nowrap;flex-shrink:0}
+.market-signal-head:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
+.market-signal p{margin:0;padding:0 10px 10px;line-height:1.6;overflow-wrap:anywhere}
+.market-signal-row{grid-column:1/-1;border:1px solid var(--line);border-radius:8px;min-width:0}
+.market-pair-summary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 24px;align-items:center;list-style:none;cursor:pointer;min-height:44px}
+.market-pair-summary::-webkit-details-marker{display:none}
+.market-pair-summary::after{content:'▾';text-align:center;color:var(--muted)}
+.market-signal-row[open]>.market-pair-summary::after{content:'▴'}
+.market-pair-summary:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
+.market-pair-reasons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:0 6px 8px}
+.market-pair-reasons .market-signal{border:0}
+.market-pair-reasons p{font-size:12px}
+@media(max-width:560px){.market-signals{gap:6px}.market-signal-head{gap:4px;padding:9px 6px}.market-signal-head strong{font-size:12px}.market-signal-head .tag{font-size:10px;padding:4px}}
+</style>
 </head>
 <style>
 @media(max-width:560px){
@@ -122,19 +141,47 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 <script>
 const KEY='crypto-dashboard-supabase-v1',colors=['#57d9ff','#a98cff','#55d69b','#f6c85f','#ff7287','#f28dff','#85e0d0','#ff9e6d','#76a8ff','#b8de6f'];
 const catalog={bitcoin:{symbol:'BTC',name:'Bitcoin',coingecko:'bitcoin'},ethereum:{symbol:'ETH',name:'Ethereum',coingecko:'ethereum'},ripple:{symbol:'XRP',name:'XRP',coingecko:'ripple'},solana:{symbol:'SOL',name:'Solana',coingecko:'solana'},cardano:{symbol:'ADA',name:'Cardano',coingecko:'cardano'},binancecoin:{symbol:'BNB',name:'BNB',coingecko:'binancecoin'},chainlink:{symbol:'LINK',name:'Chainlink',coingecko:'chainlink'},polkadot:{symbol:'DOT',name:'Polkadot',coingecko:'polkadot'},'avalanche-2':{symbol:'AVAX',name:'Avalanche',coingecko:'avalanche-2'}};
-const defaultTargets={bitcoin:.7,ethereum:.2,ripple:.05,solana:.05},presets={steady:{bitcoin:.7,ethereum:.2,rest:.1},balanced:{bitcoin:.5,ethereum:.3,rest:.2},growth:{bitcoin:.4,ethereum:.25,rest:.35}},tolerance=.05,$=id=>document.getElementById(id),money=n=>Number.isFinite(n)?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—',pct=n=>Number.isFinite(n)?(n>=0?'+':'')+n.toFixed(2)+'%':'—',fmtQty=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:8});
+const defaultTargets={bitcoin:.7,ethereum:.2,ripple:.05,solana:.05},presets={steady:{bitcoin:.7,ethereum:.2,rest:.1},balanced:{bitcoin:.5,ethereum:.3,rest:.2},growth:{bitcoin:.4,ethereum:.25,rest:.35}},$=id=>document.getElementById(id),money=n=>Number.isFinite(n)?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—',pct=n=>Number.isFinite(n)?(n>=0?'+':'')+n.toFixed(2)+'%':'—',fmtQty=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:8});
 let state=loadState(),activeCoinId=null,sortDraft=[],sortDraggedId=null;
 function defaultState(){return{coins:[],prices:{},transactions:[],cash:0,targetTotal:0,targets:{},icons:{},snapshots:[],trendMetric:'total',trendRange:'30',trendFrom:'',trendTo:'',fearGreed:null};}
-function loadState(){return JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();}
+function loadState(){let loaded;try{loaded=JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();}catch(error){console.error('Local cache could not be read',error);loaded=defaultState();}for(const price of Object.values(loaded.prices||{})){if(price&&price.signal?.version!==3)delete price.signal;}return loaded;}
 function normalize(){state.coins=Array.isArray(state.coins)?state.coins:[];state.prices=state.prices||{};state.transactions=Array.isArray(state.transactions)?state.transactions:[];state.icons=state.icons||{};state.snapshots=Array.isArray(state.snapshots)?state.snapshots:[];state.trendBackups=Array.isArray(state.trendBackups)?state.trendBackups:[];state.historicalPrices=state.historicalPrices&&typeof state.historicalPrices==='object'?state.historicalPrices:{};state.fearGreed=state.fearGreed&&typeof state.fearGreed==='object'?state.fearGreed:null;state.trendMetric=state.trendMetric||'total';if(['day','week','month','year'].includes(state.trendRange))state.trendRange='30';state.trendRange=state.trendRange||'30';state.trendFrom=state.trendFrom||'';state.trendTo=state.trendTo||'';state.cash=Math.max(0,Number(state.cash)||0);state.targetTotal=Math.max(0,Number(state.targetTotal)||0);state.targets=state.targets&&typeof state.targets==='object'?state.targets:{...defaultTargets};if(!Object.keys(state.targets).length)state.targets={...defaultTargets};state.coins.forEach(c=>{if(!(c.id in state.targets)&&!c.watch)state.targets[c.id]=0;});}
-function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+function saveLocalState(){try{localStorage.setItem(KEY,JSON.stringify(state));return true;}catch(error){console.error('Local cache save failed',error);return false;}}
+function save(){saveLocalState();}
 function coinInfo(id){return catalog[id]||state.coins.find(c=>c.id===id)||{id,symbol:id.toUpperCase(),name:id.toUpperCase()};}
 function activeCoins(){return state.coins.filter(c=>!c.watch);}
-function holdings(id){let qty=0,cost=0,realized=0;const tx=state.transactions.filter(t=>t.coinId===id).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)));for(const t of tx){const q=Number(t.qty)||0,p=Number(t.price)||0,f=Number(t.fee)||0;if(t.type==='buy'){qty+=q;cost+=q*p+f;}else if(q>0&&qty>0){const sold=Math.min(q,qty),avg=cost/qty;realized+=sold*p-f-sold*avg;cost-=sold*avg;qty-=sold;if(qty<1e-10){qty=0;cost=0;}}}return{qty,cost,avg:qty?cost/qty:0,realized};}
+function compareTrades(a,b){return String(a.date).localeCompare(String(b.date))||String(a.createdAt||'').localeCompare(String(b.createdAt||''));}
+function nextTradeCreatedAt(){const latest=state.transactions.reduce((max,t)=>Math.max(max,Date.parse(t.createdAt)||0),0);return new Date(Math.max(Date.now(),latest+1)).toISOString();}
+function holdings(id){let qty=0,cost=0,realized=0;const tx=state.transactions.filter(t=>t.coinId===id).sort((a,b)=>compareTrades(a,b));for(const t of tx){const q=Number(t.qty)||0,p=Number(t.price)||0,f=Number(t.fee)||0;if(t.type==='buy'){qty+=q;cost+=q*p+f;}else if(q>0&&qty>0){const sold=Math.min(q,qty),avg=cost/qty;realized+=sold*p-f-sold*avg;cost-=sold*avg;qty-=sold;if(qty<1e-10){qty=0;cost=0;}}}return{qty,cost,avg:qty?cost/qty:0,realized};}
 function ema(v,p){let k=2/(p+1),e=v[0]||0;return v.map((x,i)=>i?e=x*k+e*(1-k):(e=x));}
-function sma(v,p){return v.length<p?null:v.slice(-p).reduce((a,b)=>a+b,0)/p;}
-function rsi(v,p=14){if(v.length<p+1)return null;let g=0,l=0;for(let i=v.length-p;i<v.length;i++){const d=v[i]-v[i-1];if(d>0)g+=d;else l-=d;}return l===0?100:100-100/(1+g/l);}
-function signal({closes,vols}){if(closes.length<200)return{label:'資料不足',kind:'loading',reason:'需要至少 200 根日線才能完整判斷',metrics:{}};const e20=ema(closes,20),e50=ema(closes,50),e12=ema(closes,12),e26=ema(closes,26),mac=e12.at(-1)-e26.at(-1),hist=mac-ema(e12.map((v,i)=>v-e26[i]),9).at(-1),e200=sma(closes,200),rr=rsi(closes),vr=vols.at(-1)/(vols.slice(-21,-1).reduce((a,b)=>a+b,0)/20),price=closes.at(-1);let heat=0,risk=0,pos=0;if(rr>=74)heat++;if(price/e200>=1.35)heat++;if(hist<0)heat++;if(vr>=1.5&&price<closes.at(-2))heat++;if(price<e200)risk++;if(price<e20.at(-1)&&e20.at(-1)<e50.at(-1))risk++;if(rr<43)risk++;if(price>e200)pos++;if(e20.at(-1)>e50.at(-1))pos++;if(rr>=38&&rr<=62)pos++;if(hist>0)pos++;const metrics={rsi:rr,ema50:e50.at(-1),ema200:e200,volumeRatio:vr};if(heat>=2)return{label:'長線減碼候選',kind:'trim',reason:`過熱條件 ${heat}/4；RSI ${rr.toFixed(1)}、價格/EMA200 ${(price/e200*100).toFixed(0)}%`,metrics};if(risk>=3)return{label:'風險警示',kind:'trim',reason:`長線轉弱條件 ${risk}/3；趨勢與動能需留意`,metrics};if(pos>=3&&rr<=62)return{label:'買進候選',kind:'buy',reason:`趨勢確認 ${pos}/4；RSI ${rr.toFixed(1)}，未見明顯過熱`,metrics};return{label:'持有／觀望',kind:'hold',reason:`趨勢確認 ${pos}/4；RSI ${rr.toFixed(1)}，等待更多條件一致`,metrics};}
+function rsi(v,p=14){
+  if(!Number.isInteger(p)||p<1||v.length<p+1||v.some(x=>!Number.isFinite(x)))return null;
+  let gain=0,loss=0;
+  for(let i=1;i<=p;i++){const d=v[i]-v[i-1];gain+=Math.max(d,0);loss+=Math.max(-d,0);}
+  gain/=p;loss/=p;
+  for(let i=p+1;i<v.length;i++){const d=v[i]-v[i-1];gain=(gain*(p-1)+Math.max(d,0))/p;loss=(loss*(p-1)+Math.max(-d,0))/p;}
+  if(gain===0&&loss===0)return 50;
+  if(loss===0)return 100;
+  if(gain===0)return 0;
+  return 100-100/(1+gain/loss);
+}
+function signal({closes,vols}){
+  if(closes.length<200||closes.some(x=>!Number.isFinite(x)||x<=0))return{version:3,label:'資料不足',kind:'loading',reason:'需要至少 200 根有效日線才能計算市場訊號。',metrics:{}};
+  const e20=ema(closes,20).at(-1),e50=ema(closes,50).at(-1),e200=ema(closes,200).at(-1);
+  const e12=ema(closes,12),e26=ema(closes,26),macd=e12.map((x,i)=>x-e26[i]),hist=macd.at(-1)-ema(macd,9).at(-1);
+  const rr=rsi(closes,14),price=closes.at(-1),avgVolume=vols.length>=21?vols.slice(-21,-1).reduce((a,b)=>a+b,0)/20:0;
+  const vr=avgVolume>0&&Number.isFinite(vols.at(-1))?vols.at(-1)/avgVolume:null;
+  const bullish=price>e50&&e50>e200,bearish=price<e50&&e50<e200;
+  const trend=bullish?'趨勢偏多':bearish?'趨勢偏弱':'趨勢混合',momentum=hist>0?'MACD 動能偏多':hist<0?'MACD 動能偏弱':'MACD 動能持平',condition=rr>=70?'RSI 處於高檔':rr<=30?'RSI 處於低檔':'RSI 處於中間區間';
+  const label=rr>=70?'高檔留意':rr<=30?'低檔留意':bullish&&hist>0?'趨勢偏多':bearish&&hist<0?'趨勢偏弱':'中性／分歧';
+  const kind=rr>=70||bearish&&hist<0?'trim':bullish&&hist>0&&rr>30?'buy':'hold';
+  return{version:3,label,kind,reason:`${trend}；${momentum}；RSI(14) ${rr.toFixed(1)}（${condition}）。`,metrics:{rsi:rr,ema20:e20,ema50:e50,ema200:e200,macdHistogram:hist,volumeRatio:vr}};
+}
+function closedDailySignal(rows,serverTime){
+  const completed=rows.filter(row=>Number.isFinite(Number(row[6]))&&Number(row[6])<serverTime);
+  const result=signal({closes:completed.map(row=>Number(row[4])),vols:completed.map(row=>Number(row[5]))});
+  return {...result,asOf:completed.length?new Date(Number(completed.at(-1)[0])).toISOString().slice(0,10):null,closedCandles:true};
+}
 function symbolFor(c){return (c.symbol||catalog[c.id]?.symbol||c.id).toUpperCase().replace(/[^A-Z0-9]/g,'')+'USDT';}
 function esc(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function targetSum(){return activeCoins().reduce((a,c)=>a+(Number(state.targets[c.id])||0),0);}
@@ -149,7 +196,6 @@ function rebuildDateKey(ms){return new Date(ms).toISOString().slice(0,10);}
 function setRebuildNotice(message,isError=false){$('statusDot').className=isError?'dot err':'dot';$('statusText').textContent=message;}
 function saveTrendBackup(reason){state.trendBackups=Array.isArray(state.trendBackups)?state.trendBackups:[];state.trendBackups.push({created:Date.now(),reason,snapshots:JSON.parse(JSON.stringify(state.snapshots||[]))});if(state.trendBackups.length>5)state.trendBackups=state.trendBackups.slice(-5);}
 async function fetchDailyPrices(coin,start,end){const pair=symbolFor(coin),cached=state.historicalPrices?.[coin.id]||{},out={...cached},startMs=Date.UTC(start.getFullYear(),start.getMonth(),start.getDate()),endMs=Date.UTC(end.getFullYear(),end.getMonth(),end.getDate());let cursor=startMs;while(cursor<=endMs){let rows;try{rows=await getJson('https://data-api.binance.vision/api/v3/klines?symbol='+pair+'&interval=1d&startTime='+cursor+'&endTime='+endMs+'&limit=1000');}catch{throw Error(pair+' 無法取得 Binance 日線');}if(!Array.isArray(rows)||!rows.length)break;for(const row of rows)out[rebuildDateKey(+row[0])]=Number(row[4]);const next=+rows.at(-1)[0]+86400000;if(next<=cursor)break;cursor=next;}state.historicalPrices=state.historicalPrices||{};state.historicalPrices[coin.id]=out;return out;}
-async function rebuildPortfolioTrend(reason='交易紀錄變更'){const tx=[...state.transactions].sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)));if(!tx.length)return true;const firstDate=tx[0].date,first=dateFromKey(firstDate),end=dateFromKey(todayKey()),coins=activeCoins(),priceMaps={},warnings=[];setRebuildNotice('正在依歷史交易重新計算走勢…');try{for(const coin of coins)priceMaps[coin.id]=await fetchDailyPrices(coin,first,end);}catch(error){setRebuildNotice('走勢重算失敗：'+error.message,true);$('error').textContent='走勢未變更：'+error.message;$('error').style.display='block';return false;}const before=(state.snapshots||[]).filter(s=>s.date<firstDate),rebuilt=[],book=Object.fromEntries(coins.map(c=>[c.id,{qty:0,cost:0,realized:0}]));let cursor=0;for(let day=first;day<=end;day=addDays(day,1)){const date=todayKey(day);while(cursor<tx.length&&tx[cursor].date===date){const t=tx[cursor++],b=book[t.coinId];if(!b)continue;const q=Number(t.qty)||0,p=Number(t.price)||0,f=Number(t.fee)||0;if(t.type==='buy'){b.qty+=q;b.cost+=q*p+f;}else{if(q>b.qty+1e-10){warnings.push(date+' · '+coinInfo(t.coinId).symbol+' 賣出數量大於當日持倉');continue;}const avg=b.qty?b.cost/b.qty:0;b.realized+=q*p-f-q*avg;b.cost-=q*avg;b.qty-=q;if(b.qty<1e-10){b.qty=0;b.cost=0;}}}let value=0,cost=0,realized=0,missing=[];const prices={};for(const coin of coins){const b=book[coin.id];cost+=b.cost;realized+=b.realized;if(b.qty<=0)continue;const price=date===todayKey()&&Number(state.prices[coin.id]?.price)>0?Number(state.prices[coin.id].price):Number(priceMaps[coin.id]?.[date]);if(!(price>0)){missing.push(coin.symbol||coinInfo(coin.id).symbol);continue;}prices[coin.id]=price;value+=b.qty*price;}if(missing.length)warnings.push(date+' · 缺少 '+missing.join('、')+' 的 Binance 日線收盤價');if(warnings.length)break;const unrealized=value-cost;rebuilt.push({date,total:value+state.cash,unrealized,profit:unrealized+realized,cash:state.cash,prices,source:'rebuild',updated:Date.now()});}if(warnings.length){setRebuildNotice('走勢未重算：歷史資料不完整',true);$('error').textContent='走勢維持原資料。'+warnings.slice(0,8).join('；')+(warnings.length>8?'…':'');$('error').style.display='block';return false;}saveTrendBackup(reason);state.snapshots=[...before,...rebuilt];save();$('error').style.display='none';setRebuildNotice('歷史走勢已重新計算');return true;}
 function recordSnapshot(){const t=portfolioTotals(),date=todayKey(),snap={date,total:t.total,unrealized:t.unrealized,profit:t.profit,cash:state.cash,updated:Date.now()};const i=state.snapshots.findIndex(s=>s.date===date);if(i>=0)state.snapshots[i]=snap;else state.snapshots.push(snap);state.snapshots.sort((a,b)=>a.date.localeCompare(b.date));}
 function trendBounds(range){const today=dateFromKey(todayKey()),snaps=[...state.snapshots].sort((a,b)=>a.date.localeCompare(b.date));if(range==='custom')return{start:state.trendFrom?dateFromKey(state.trendFrom):today,end:state.trendTo?dateFromKey(state.trendTo):today};if(range==='all')return{start:snaps.length?dateFromKey(snaps[0].date):today,end:today};const days=Math.max(1,Number(range)||30);return{start:addDays(today,-days+1),end:today};}
 function formatDateText(key){if(!key)return'';const [y,m,d]=key.split('-');return`${y}年${m}月${d}日`;}
@@ -157,13 +203,28 @@ function rangeDraftBounds(){const range=window.trendDraftRange||state.trendRange
 function updateRangePreview(){const b=rangeDraftBounds(),custom=window.trendDraftRange==='custom';$('rangePreview').textContent=b.start&&b.end?`從 ${formatDateText(todayKey(b.start))} 至 ${formatDateText(todayKey(b.end))}`:'請選擇開始與結束日期';$('rangeCustom').hidden=!custom;if(!custom){window.trendDraftFrom='';window.trendDraftTo='';$('trendDateFrom').value='';$('trendDateTo').value='';}document.querySelectorAll('[data-range-choice]').forEach(x=>x.classList.toggle('active',x.dataset.rangeChoice===window.trendDraftRange));}
 function openTrendRange(){window.trendDraftRange=state.trendRange||'30';window.trendDraftFrom=state.trendFrom||'';window.trendDraftTo=state.trendTo||'';$('trendDateFrom').value=window.trendDraftFrom;$('trendDateTo').value=window.trendDraftTo;updateRangePreview();$('trendRangeModal').classList.add('show');}
 function confirmTrendRange(){if(window.trendDraftRange==='custom'&&(!window.trendDraftFrom||!window.trendDraftTo)){alert('請選擇開始與結束日期。');return;}if(window.trendDraftRange==='custom'&&window.trendDraftFrom>window.trendDraftTo){alert('開始日期不能晚於結束日期。');return;}state.trendRange=window.trendDraftRange;state.trendFrom=window.trendDraftRange==='custom'?window.trendDraftFrom:'';state.trendTo=window.trendDraftRange==='custom'?window.trendDraftTo:'';save();close('trendRangeModal');render();}
-function actionFor(c){const targetPct=Number(state.targets[c.id])||0,target=state.targetTotal*targetPct,diff=target-c.value,ratio=target?diff/target:0;return{targetPct,target,diff,ratio};}
-function adviceHtml(c){const p=actionFor(c),share=state.targetTotal?c.value/state.targetTotal*100:0;if(c.watch)return`<div class="rebalance"><div class="advice-top"><h3>觀察清單</h3><span class="tag info">觀察中</span></div><p class="muted">此幣種只追蹤行情與指標，不納入配置設定、投資建議與部位平衡。</p></div>`;const tagClass=!isConfigValid()?'warn':p.diff>0?'buy':p.diff<0?'sell':'hold';return`<div class="rebalance"><div class="advice-top"><h3>部位平衡</h3><span class="tag ${tagClass}">目標 ${(p.targetPct*100).toFixed(1)}%</span></div><dl><div><dt>目前／目標比例</dt><dd>${share.toFixed(1)}% / ${(p.targetPct*100).toFixed(1)}%</dd></div><div><dt>目標市值／差額</dt><dd>${money(p.target)} / <span class="${p.diff>=0?'positive':'negative'}">${money(p.diff)}</span></dd></div></dl></div>`;}
-function investmentGuide(entries){const active=entries.filter(c=>!c.watch);if(!state.targetTotal)return'<h2>投資建議</h2><p class="muted">填入投資組合總目標後，會依照配置差距自動判斷。</p>';if(!isConfigValid())return'<h2>投資建議</h2><p class="muted">配置合計不是 100%，請先到配置設定調整。</p>';const judged=active.map(c=>({c,p:actionFor(c)})).filter(x=>Number(state.targets[x.c.id])>0),overs=judged.filter(x=>Math.abs(x.p.ratio)>tolerance),heavy=overs.filter(x=>x.p.diff<0).sort((a,b)=>a.p.diff-b.p.diff),light=judged.filter(x=>x.p.diff>0).sort((a,b)=>b.p.diff-a.p.diff);if(heavy.length){return`<h2>投資建議</h2><p class="muted">有幣種偏離目標超過 5%，建議先做倉位平衡，再考慮新增資金。</p><div class="cash-items">${heavy.slice(0,3).map(x=>`<span class="target-pill">${x.c.symbol} <strong>過重 ${money(Math.abs(x.p.diff))}</strong></span>`).join('')}${light.slice(0,3).map(x=>`<span class="target-pill">${x.c.symbol} <strong>可補 ${money(x.p.diff)}</strong></span>`).join('')}</div>`;}if(light.length){return`<h2>投資建議</h2><p class="muted">目前沒有幣種過重超過 5%，可用新增資金優先補到低於目標的幣種。</p><div class="cash-items">${light.slice(0,4).map(x=>`<span class="target-pill">${x.c.symbol} <strong>缺 ${money(x.p.diff)}</strong></span>`).join('')}</div>`;}return'<h2>投資建議</h2><p class="muted">目前配置接近目標，新增資金可依目標比例分批投入。</p>';}
-function fearGreedTone(value){return value<=24?{key:'extreme-fear',label:'極度恐懼'}:value<=44?{key:'fear',label:'恐懼'}:value<=55?{key:'neutral',label:'中性'}:value<=74?{key:'greed',label:'貪婪'}:{key:'extreme-greed',label:'極度貪婪'};}async function refreshFearGreed(){try{const data=await getJson('https://api.alternative.me/fng/?limit=1&format=json'),row=data?.data?.[0],value=Number(row?.value);if(!Number.isFinite(value)||value<0||value>100)throw Error('invalid fear and greed data');state.fearGreed={value,classification:String(row.value_classification||''),timestamp:Number(row.timestamp)*1000||Date.now(),updated:Date.now(),error:false};return true;}catch{if(state.fearGreed)state.fearGreed.error=true;return false;}}function renderFearGreed(){const valueEl=$('fearGreedValue'),labelEl=$('fearGreedLabel'),marker=$('fearGreedMarker'),meta=$('fearGreedMeta'),meter=document.querySelector('.sentiment-meter'),f=state.fearGreed;if(!valueEl||!labelEl||!marker||!meta||!meter)return;if(!f||!Number.isFinite(Number(f.value))){valueEl.textContent='—';labelEl.className='tag info fng-tag';labelEl.textContent='尚未更新';marker.style.left='50%';meter.setAttribute('aria-valuenow','0');meta.innerHTML='按「刷新行情」更新市場情緒。資料來源：<a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener noreferrer">Alternative.me Fear &amp; Greed Index</a>';return;}const value=Math.max(0,Math.min(100,Number(f.value))),tone=fearGreedTone(value),updated=f.timestamp?new Date(f.timestamp).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}):'—';valueEl.textContent=String(Math.round(value));labelEl.className='tag fng-tag '+tone.key;labelEl.textContent=tone.label;marker.style.left=value+'%';meter.setAttribute('aria-valuenow',String(Math.round(value)));meta.innerHTML=(f.error?'目前無法更新，顯示上次資料：':'資料更新：')+updated+' ・來源：<a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener noreferrer">Alternative.me Fear &amp; Greed Index</a>';}function render(){const entries=entriesNow(),calc=entries.filter(c=>!c.watch),totals=portfolioTotals(entries),cost=totals.cost,pnl=totals.unrealized,total=totals.total;$('totalValue').textContent=money(total);$('totalCost').textContent=money(cost);$('totalPnl').textContent=money(pnl);$('totalPnl').className='value '+(pnl>0?'positive':pnl<0?'negative':'');$('totalRoi').textContent=cost?pct(pnl/cost*100):'—';$('totalRoi').className='value '+(pnl>0?'positive':pnl<0?'negative':'');$('cashInput').value=state.cash||'';$('targetInput').value=state.targetTotal||'';const sumTargets=targetSum(),warning=$('configWarning');if(Math.abs(sumTargets-1)>.0001){warning.textContent=sumTargets<1?`配置合計目前 ${(sumTargets*100).toFixed(1)}%，還有 ${((1-sumTargets)*100).toFixed(1)}% 尚未分配。`:`配置合計目前 ${(sumTargets*100).toFixed(1)}%，超出 ${((sumTargets-1)*100).toFixed(1)}%，請調整到 100%。`;warning.classList.add('show');}else warning.classList.remove('show');const parts=[...calc.filter(c=>c.value>0).map(c=>({name:c.symbol,value:c.value,color:c.color})),...(state.cash?[{name:'USDT／現金',value:state.cash,color:'#526486'}]:[])],sum=parts.reduce((a,p)=>a+p.value,0);let deg=0;$('donut').style.background=sum?'conic-gradient('+parts.map(p=>{const from=deg;deg+=p.value/sum*360;return`${p.color} ${from}deg ${deg}deg`;}).join(',')+')':'#263352';$('legend').innerHTML=parts.length?parts.map(p=>`<div class="legend-row"><span class="legend-name"><i class="swatch" style="background:${p.color}"></i>${p.name}</span><strong>${(p.value/sum*100).toFixed(1)}%</strong></div>`).join(''):'<span class="muted">新增交易或填入保留 USDT 後顯示配置</span>';const invested=calc.filter(c=>c.value>0),investedTotal=invested.reduce((a,c)=>a+c.value,0);$('allocations').classList.toggle('many-desktop',invested.length>8);$('allocations').classList.toggle('many-mobile',invested.length>9);$('allocations').innerHTML=invested.length?invested.map(c=>`<div class="allocation"><div class="muted">${c.symbol}</div><div class="big">${(c.value/investedTotal*100).toFixed(1)}%</div><div class="muted">${money(c.value)}</div></div>`).join(''):'<div class="muted">尚未新增買進紀錄</div>';renderFearGreed();renderTrend();$('cashGuide').innerHTML=investmentGuide(entries);$('coins').innerHTML=entries.length?entries.map((c,i)=>{const m=c.signal?.metrics||{},rows=[['RSI (14)',Number.isFinite(m.rsi)?m.rsi.toFixed(1):null],['EMA50 / EMA200',Number.isFinite(m.ema50)&&Number.isFinite(m.ema200)?`${money(m.ema50)} / ${money(m.ema200)}`:null],['24h 成交量比',Number.isFinite(m.volumeRatio)?m.volumeRatio.toFixed(2)+'×':null],['期貨資金費率',Number.isFinite(c.derivatives?.funding)?pct(c.derivatives.funding*100):null],['多空比（期貨）',Number.isFinite(c.derivatives?.longShort)?c.derivatives.longShort.toFixed(2):null]];return`<article class="coin-card"><div class="coin-top"><div class="coin-name"><div class="coin-icon">${iconHtml(c)}</div><div><div class="coin-symbol">${esc(c.symbol)} ${c.watch?'<span class="tag info">觀察中</span>':''}</div><div class="coin-full">${esc(c.name||c.id)}</div></div></div><span class="signal ${c.signal?.kind||'loading'}">${c.signal?.label||'待刷新'}</span></div><div class="price">${money(c.price)}</div><div class="change ${c.change>=0?'positive':'negative'}">24h ${pct(c.change)}</div><div class="metrics"><div class="metric"><label>持有數量</label><strong>${fmtQty(c.qty)}</strong></div><div class="metric"><label>平均成本</label><strong>${c.qty?money(c.avg):'—'}</strong></div><div class="metric"><label>目前市值</label><strong>${money(c.value)}</strong></div><div class="metric"><label>未實現損益</label><strong class="${c.pnl>=0?'positive':'negative'}">${money(c.pnl)}</strong></div><div class="metric"><label>報酬率</label><strong class="${c.pnl>=0?'positive':'negative'}">${c.cost?pct(c.pnl/c.cost*100):'—'}</strong></div><div class="metric"><label>已實現損益</label><strong class="${c.realized>=0?'positive':'negative'}">${money(c.realized)}</strong></div></div><div class="detail-list">${rows.filter(([,v])=>v!==null).map(([n,v])=>`<div class="detail-row"><span>${n}</span><strong>${v}</strong></div>`).join('')}</div><div class="reason">${c.signal?.reason||'按「刷新行情」取得價格與歷史資料。'}</div>${adviceHtml(c)}<div class="card-foot"><span class="muted">資料：Binance 現貨 · 日線</span><div class="card-actions"><button class="btn small" data-trade="${c.id}">＋交易紀錄</button><button class="btn small ghost" data-records="${c.id}">紀錄 (${state.transactions.filter(t=>t.coinId===c.id).length})</button><button class="btn small ghost" data-watch="${c.id}">${c.watch?'取消觀察':'設為觀察'}</button><button class="remove" data-remove="${i}">移除</button></div></div></article>`;}).join(''):'<div class="empty">尚未加入幣種</div>';document.querySelectorAll('[data-trade]').forEach(b=>b.addEventListener('click',()=>openTrade(b.dataset.trade,false)));document.querySelectorAll('[data-records]').forEach(b=>b.addEventListener('click',()=>openTrade(b.dataset.records,true)));document.querySelectorAll('[data-watch]').forEach(b=>b.addEventListener('click',()=>toggleWatch(b.dataset.watch)));document.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>removeCoin(+b.dataset.remove)));}
+function investmentGuide(entries){
+  const heading='<h2>市場建議訊號</h2>';
+  const mobile=window.matchMedia('(max-width:560px)').matches;
+  if(!entries.length)return heading+'<p class="muted">加入幣種並刷新行情後，顯示日線趨勢與動能訊號。</p>';
+  const header=c=>{
+    const s=c.signal?.version===3?c.signal:null;
+    return `<span class="market-signal-head"><strong>${esc(c.symbol)}</strong><span class="tag ${s?.kind==='buy'?'buy':s?.kind==='trim'?'sell':'info'}">${esc(s?.label||'待刷新')}</span></span>`;
+  };
+  const reason=c=>{const s=c.signal?.version===3?c.signal:null;return `<p class="muted">${esc(s?.reason||'請刷新行情以取得新版技術指標。')}${s?.asOf?'<br>日線日期：'+esc(s.asOf)+'（UTC）':''}</p>`;};
+  let content='';
+  if(mobile){
+    for(let i=0;i<entries.length;i+=2){
+      const pair=entries.slice(i,i+2);
+      content+=`<details class="market-signal-row"><summary class="market-pair-summary" aria-label="${esc(pair.map(c=>c.symbol).join('、'))} 的市場訊號詳細原因">${pair.map(header).join('')}${pair.length===1?'<span></span>':''}</summary><div class="market-pair-reasons">${pair.map(c=>`<div class="market-signal">${reason(c)}</div>`).join('')}</div></details>`;
+    }
+  }else content=entries.map(c=>`<article class="market-signal">${header(c)}${reason(c)}</article>`).join('');
+  return heading+'<p class="muted">已收盤日線技術訊號'+(mobile?'・點選每排箭頭，同時展開兩個幣種':'')+'</p><div class="market-signals">'+content+'</div>';
+}
+function render(){const entries=entriesNow(),calc=entries.filter(c=>!c.watch),totals=portfolioTotals(entries),cost=totals.cost,pnl=totals.unrealized,total=totals.total;$('totalValue').textContent=money(total);$('totalCost').textContent=money(cost);$('totalPnl').textContent=money(pnl);$('totalPnl').className='value '+(pnl>0?'positive':pnl<0?'negative':'');$('totalRoi').textContent=cost?pct(pnl/cost*100):'—';$('totalRoi').className='value '+(pnl>0?'positive':pnl<0?'negative':'');$('cashInput').value=state.cash||'';$('targetInput').value=state.targetTotal||'';const sumTargets=targetSum(),warning=$('configWarning');if(Math.abs(sumTargets-1)>.0001){warning.textContent=sumTargets<1?`配置合計目前 ${(sumTargets*100).toFixed(1)}%，還有 ${((1-sumTargets)*100).toFixed(1)}% 尚未分配。`:`配置合計目前 ${(sumTargets*100).toFixed(1)}%，超出 ${((sumTargets-1)*100).toFixed(1)}%，請調整到 100%。`;warning.classList.add('show');}else warning.classList.remove('show');const parts=[...calc.filter(c=>c.value>0).map(c=>({name:c.symbol,value:c.value,color:c.color})),...(state.cash?[{name:'USDT／現金',value:state.cash,color:'#526486'}]:[])],sum=parts.reduce((a,p)=>a+p.value,0);let deg=0;$('donut').style.background=sum?'conic-gradient('+parts.map(p=>{const from=deg;deg+=p.value/sum*360;return`${p.color} ${from}deg ${deg}deg`;}).join(',')+')':'#263352';$('legend').innerHTML=parts.length?parts.map(p=>`<div class="legend-row"><span class="legend-name"><i class="swatch" style="background:${p.color}"></i>${p.name}</span><strong>${(p.value/sum*100).toFixed(1)}%</strong></div>`).join(''):'<span class="muted">新增交易或填入保留 USDT 後顯示配置</span>';const invested=calc.filter(c=>c.value>0),investedTotal=invested.reduce((a,c)=>a+c.value,0);$('allocations').classList.toggle('many-desktop',invested.length>8);$('allocations').classList.toggle('many-mobile',invested.length>9);$('allocations').innerHTML=invested.length?invested.map(c=>`<div class="allocation"><div class="muted">${c.symbol}</div><div class="big">${(c.value/investedTotal*100).toFixed(1)}%</div><div class="muted">${money(c.value)}</div></div>`).join(''):'<div class="muted">尚未新增買進紀錄</div>';renderFearGreed();renderTrend();$('cashGuide').innerHTML=investmentGuide(entries);$('coins').innerHTML=entries.length?entries.map((c,i)=>{const m=c.signal?.metrics||{},rows=[['訊號日線（UTC）',c.signal?.asOf||null],['RSI (14)',Number.isFinite(m.rsi)?m.rsi.toFixed(1):null],['EMA50 / EMA200',Number.isFinite(m.ema50)&&Number.isFinite(m.ema200)?`${money(m.ema50)} / ${money(m.ema200)}`:null],['24h 成交量比',Number.isFinite(m.volumeRatio)?m.volumeRatio.toFixed(2)+'×':null],['期貨資金費率',Number.isFinite(c.derivatives?.funding)?pct(c.derivatives.funding*100):null],['多空比（期貨）',Number.isFinite(c.derivatives?.longShort)?c.derivatives.longShort.toFixed(2):null]];return`<article class="coin-card"><div class="coin-top"><div class="coin-name"><div class="coin-icon">${iconHtml(c)}</div><div><div class="coin-symbol">${esc(c.symbol)} ${c.watch?'<span class="tag info">觀察中</span>':''}</div><div class="coin-full">${esc(c.name||c.id)}</div></div></div><span class="signal ${c.signal?.kind||'loading'}">${c.signal?.label||'待刷新'}</span></div><div class="price">${money(c.price)}</div><div class="change ${c.change>=0?'positive':'negative'}">24h ${pct(c.change)}</div><div class="metrics"><div class="metric"><label>持有數量</label><strong>${fmtQty(c.qty)}</strong></div><div class="metric"><label>平均成本</label><strong>${c.qty?money(c.avg):'—'}</strong></div><div class="metric"><label>目前市值</label><strong>${money(c.value)}</strong></div><div class="metric"><label>未實現損益</label><strong class="${c.pnl>=0?'positive':'negative'}">${money(c.pnl)}</strong></div><div class="metric"><label>報酬率</label><strong class="${c.pnl>=0?'positive':'negative'}">${c.cost?pct(c.pnl/c.cost*100):'—'}</strong></div><div class="metric"><label>已實現損益</label><strong class="${c.realized>=0?'positive':'negative'}">${money(c.realized)}</strong></div></div><div class="detail-list">${rows.filter(([,v])=>v!==null).map(([n,v])=>`<div class="detail-row"><span>${n}</span><strong>${v}</strong></div>`).join('')}</div><div class="card-foot"><span class="muted">資料：Binance 現貨 · 日線</span><div class="card-actions"><button class="btn small" data-trade="${c.id}">＋交易紀錄</button><button class="btn small ghost" data-records="${c.id}">紀錄 (${state.transactions.filter(t=>t.coinId===c.id).length})</button><button class="btn small ghost" data-watch="${c.id}">${c.watch?'取消觀察':'設為觀察'}</button><button class="remove" data-remove="${i}">移除</button></div></div></article>`;}).join(''):'<div class="empty">尚未加入幣種</div>';document.querySelectorAll('[data-trade]').forEach(b=>b.addEventListener('click',()=>openTrade(b.dataset.trade,false)));document.querySelectorAll('[data-records]').forEach(b=>b.addEventListener('click',()=>openTrade(b.dataset.records,true)));document.querySelectorAll('[data-watch]').forEach(b=>b.addEventListener('click',()=>toggleWatch(b.dataset.watch)));document.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>removeCoin(+b.dataset.remove)));}
 async function getJson(url){const r=await fetch(url);if(!r.ok)throw Error(r.status);return r.json();}
 async function loadIcon(c){if(state.icons[c.id])return;try{let cg=c.coingecko||catalog[c.id]?.coingecko;if(!cg){const q=await getJson('https://api.coingecko.com/api/v3/search?query='+encodeURIComponent(c.symbol||c.id));const hit=(q.coins||[]).find(x=>String(x.symbol).toUpperCase()===String(c.symbol).toUpperCase())||(q.coins||[])[0];cg=hit?.id;if(hit?.thumb){state.icons[c.id]=hit.thumb;return;}}if(cg){const d=await getJson('https://api.coingecko.com/api/v3/coins/'+cg+'?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false');state.icons[c.id]=d.image?.small||d.image?.thumb||'';}}catch{}}
-async function refresh(){const b=$('refreshBtn');b.disabled=true;$('statusDot').className='dot';$('statusText').textContent='正在取得行情與歷史資料…';$('error').style.display='none';const [rs]=await Promise.all([Promise.all(state.coins.map(async c=>{const s=symbolFor(c);try{const[t,raw]=await Promise.all([getJson('https://data-api.binance.vision/api/v3/ticker/24hr?symbol='+s),getJson(`https://data-api.binance.vision/api/v3/klines?symbol=${s}&interval=1d&limit=1000`),loadIcon(c)]),closes=raw.map(x=>+x[4]),vols=raw.map(x=>+x[5]),next={...(state.prices[c.id]||{}),price:+t.lastPrice,change:+t.priceChangePercent,signal:signal({closes,vols}),updated:Date.now()};try{const f=await getJson('https://fapi.binance.com/fapi/v1/premiumIndex?symbol='+s);next.derivatives={funding:+f.lastFundingRate};try{const q=await getJson(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${s}&period=1d&limit=1`);if(q[0]?.longShortRatio)next.derivatives.longShort=+q[0].longShortRatio;}catch{}}catch{}state.prices[c.id]=next;return true;}catch{return false;}})),refreshFearGreed()]),success=rs.filter(Boolean).length;if(success)recordSnapshot();save();if(success){$('updatedAt').textContent='最後更新：'+new Date().toLocaleString('zh-TW');$('statusDot').className='dot ok';$('statusText').textContent=success===rs.length?'行情更新成功':`部分更新成功（${success}/${rs.length}）`;}else{$('statusDot').className='dot err';$('statusText').textContent='目前無法更新，保留上次資料';$('error').textContent='行情來源暫時無法連線，已保留本機持倉與上次成功行情。';$('error').style.display='block';}render();b.disabled=false;}
+async function refresh(){const b=$('refreshBtn');b.disabled=true;$('statusDot').className='dot';$('statusText').textContent='正在取得行情與歷史資料…';$('error').style.display='none';let serverTime;try{const clock=await getJson('https://data-api.binance.vision/api/v3/time');serverTime=Number(clock.serverTime);if(!Number.isFinite(serverTime))throw Error('invalid market time');}catch(error){$('statusDot').className='dot err';$('statusText').textContent='無法確認行情時間，請稍後重試';b.disabled=false;return;}const [rs]=await Promise.all([Promise.all(state.coins.map(async c=>{const s=symbolFor(c);try{const[t,raw]=await Promise.all([getJson('https://data-api.binance.vision/api/v3/ticker/24hr?symbol='+s),getJson(`https://data-api.binance.vision/api/v3/klines?symbol=${s}&interval=1d&limit=1000`),loadIcon(c)]),next={...(state.prices[c.id]||{}),price:+t.lastPrice,change:+t.priceChangePercent,signal:closedDailySignal(raw,serverTime),updated:Date.now()};try{const f=await getJson('https://fapi.binance.com/fapi/v1/premiumIndex?symbol='+s);next.derivatives={funding:+f.lastFundingRate};try{const q=await getJson(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${s}&period=1d&limit=1`);if(q[0]?.longShortRatio)next.derivatives.longShort=+q[0].longShortRatio;}catch{}}catch{}state.prices[c.id]=next;return true;}catch{return false;}})),refreshFearGreed()]),success=rs.filter(Boolean).length;if(success)recordSnapshot();save();if(success){$('updatedAt').textContent='最後更新：'+new Date().toLocaleString('zh-TW');$('statusDot').className='dot ok';$('statusText').textContent=success===rs.length?'行情更新成功':`部分更新成功（${success}/${rs.length}）`;}else{$('statusDot').className='dot err';$('statusText').textContent='目前無法更新，保留上次資料';$('error').textContent='行情來源暫時無法連線，已保留本機持倉與上次成功行情。';$('error').style.display='block';}render();b.disabled=false;}
 function openCoinModal(){const available=Object.entries(catalog).filter(([id])=>!state.coins.some(c=>c.id===id));$('coinSelect').innerHTML='<option value="">選擇常用幣種</option>'+available.map(([id,c])=>`<option value="${id}">${c.symbol} · ${c.name}</option>`).join('');$('customSymbol').value='';$('coinModal').classList.add('show');}
 function addCoin(){let custom=$('customSymbol').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');if(custom.endsWith('USDT'))custom=custom.slice(0,-4);const selected=$('coinSelect').value;let coin;if(custom)coin={id:'custom-'+custom.toLowerCase(),symbol:custom,name:custom};else if(selected)coin={id:selected,...catalog[selected]};if(!coin)return;if(state.coins.some(c=>c.id===coin.id||String(c.symbol).toUpperCase()===coin.symbol)){alert('這個幣種已經在清單中。');return;}state.coins.push(coin);if(!(coin.id in state.targets))state.targets[coin.id]=0;save();close('coinModal');render();refresh();}
 function removeCoin(i){const id=state.coins[i].id;if(state.transactions.some(t=>t.coinId===id)){alert('此幣種已有交易紀錄，為避免資料不一致，無法移除。若只是暫時不想納入配置，請改用設為觀察；若真的要移除，請先刪除該幣種所有交易紀錄。');return;}state.coins.splice(i,1);delete state.targets[id];delete state.icons[id];save();render();}
@@ -186,7 +247,7 @@ function trendSeries(){const metric=state.trendMetric||'total',range=state.trend
 function bindTrendTouch(){const box=$('trendChart');box.addEventListener('touchmove',e=>{const t=e.touches[0],svg=box.querySelector('svg'),line=box.querySelector('#trendHoverLine');if(!t||!svg||!line)return;e.preventDefault();const circles=[...svg.querySelectorAll('.trend-point')];if(!circles.length)return;const r=svg.getBoundingClientRect(),x=t.clientX,nearest=circles.reduce((best,c)=>Math.abs((r.left+Number(c.getAttribute('cx'))/900*r.width)-x)<Math.abs((r.left+Number(best.getAttribute('cx'))/900*r.width)-x)?c:best,circles[0]),cx=Number(nearest.getAttribute('cx'));line.setAttribute('x1',cx);line.setAttribute('x2',cx);line.setAttribute('display','');updateTrendReadout(nearest.dataset.date);},{passive:false});box.addEventListener('touchend',()=>{const line=box.querySelector('#trendHoverLine');if(line)line.setAttribute('display','none');updateTrendReadout(todayKey());});}
 function openDb(){$('dbModal').classList.add('show');}
 function close(id){$(id).classList.remove('show');}
-$('refreshBtn').addEventListener('click',refresh);$('addBottomBtn').addEventListener('click',openCoinModal);$('confirmAddCoin').addEventListener('click',addCoin);$('configBtn').addEventListener('click',openConfig);$('sortBtn').addEventListener('click',openSort);$('dbBtn').addEventListener('click',openDb);$('allRecordsBtn').addEventListener('click',openAllRecords);$('trendRangeBtn').addEventListener('click',openTrendRange);$('confirmTrendRange').addEventListener('click',confirmTrendRange);$('saveSortBtn').addEventListener('click',saveSort);$('saveConfigBtn').addEventListener('click',saveConfig);document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));document.querySelectorAll('[data-trend-metric]').forEach(b=>b.addEventListener('click',()=>{state.trendMetric=b.dataset.trendMetric;save();render();}));document.querySelectorAll('[data-range-choice]').forEach(b=>b.addEventListener('click',()=>{window.trendDraftRange=b.dataset.rangeChoice;updateRangePreview();}));$('trendDateFrom').addEventListener('change',e=>{window.trendDraftFrom=e.target.value;updateRangePreview();});$('trendDateTo').addEventListener('change',e=>{window.trendDraftTo=e.target.value;updateRangePreview();});$('cashInput').addEventListener('input',e=>{state.cash=Math.max(0,+e.target.value||0);recordSnapshot();save();render();});$('targetInput').addEventListener('input',e=>{state.targetTotal=Math.max(0,+e.target.value||0);recordSnapshot();save();render();});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));$('showRecordsBtn').addEventListener('click',()=>openTrade(activeCoinId,true));$('tradeForm').addEventListener('submit',async e=>{e.preventDefault();const t={id:crypto.randomUUID(),coinId:activeCoinId,type:$('tradeType').value,date:$('tradeDate').value,qty:+$('tradeQty').value,price:+$('tradePrice').value,fee:+$('tradeFee').value||0,note:$('tradeNote').value.trim()},h=holdings(activeCoinId);if(!t.date||!(t.qty>0)||!(t.price>=0))return;if(t.type==='sell'&&t.qty>h.qty){alert('賣出數量不能大於目前持有數量。');return;}state.transactions.push(t);save();close('tradeModal');await rebuildPortfolioTrend('新增交易紀錄');render();});function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)||state.snapshots.at(-1),metric=state.trendMetric||'total';if(!$('trendReadout'))return;if(!s){$('trendReadout').innerHTML='';return;}const label=metric==='unrealized'?'未實現收益':metric==='profit'?'總收益':'資產',value=Number(s[metric])||0,shownDate=(date||s.date||'').replace(/-/g,'/');$('trendReadout').innerHTML=`<span>${label}<strong class="${value>=0?'positive':'negative'}">${money(value)}　｜　${shownDate}</strong></span>`;}
+$('refreshBtn').addEventListener('click',refresh);$('addBottomBtn').addEventListener('click',openCoinModal);$('confirmAddCoin').addEventListener('click',addCoin);$('configBtn').addEventListener('click',openConfig);$('sortBtn').addEventListener('click',openSort);$('dbBtn').addEventListener('click',openDb);$('allRecordsBtn').addEventListener('click',openAllRecords);$('trendRangeBtn').addEventListener('click',openTrendRange);$('confirmTrendRange').addEventListener('click',confirmTrendRange);$('saveSortBtn').addEventListener('click',saveSort);$('saveConfigBtn').addEventListener('click',saveConfig);document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));document.querySelectorAll('[data-trend-metric]').forEach(b=>b.addEventListener('click',()=>{state.trendMetric=b.dataset.trendMetric;save();render();}));document.querySelectorAll('[data-range-choice]').forEach(b=>b.addEventListener('click',()=>{window.trendDraftRange=b.dataset.rangeChoice;updateRangePreview();}));$('trendDateFrom').addEventListener('change',e=>{window.trendDraftFrom=e.target.value;updateRangePreview();});$('trendDateTo').addEventListener('change',e=>{window.trendDraftTo=e.target.value;updateRangePreview();});$('cashInput').addEventListener('input',e=>{state.cash=Math.max(0,+e.target.value||0);recordSnapshot();save();render();});$('targetInput').addEventListener('input',e=>{state.targetTotal=Math.max(0,+e.target.value||0);recordSnapshot();save();render();});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>close(b.dataset.close)));document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));$('showRecordsBtn').addEventListener('click',()=>openTrade(activeCoinId,true));$('tradeForm').addEventListener('submit',async e=>{e.preventDefault();const t={id:crypto.randomUUID(),createdAt:nextTradeCreatedAt(),coinId:activeCoinId,type:$('tradeType').value,date:$('tradeDate').value,qty:+$('tradeQty').value,price:+$('tradePrice').value,fee:+$('tradeFee').value||0,note:$('tradeNote').value.trim()},h=holdings(activeCoinId);if(!t.date||!(t.qty>0)||!(t.price>=0))return;if(t.type==='sell'&&t.qty>h.qty){alert('賣出數量不能大於目前持有數量。');return;}state.transactions.push(t);save();close('tradeModal');await rebuildPortfolioTrend('新增交易紀錄');render();});
 function niceTrendStep(raw){const p=Math.pow(10,Math.floor(Math.log10(Math.max(raw,1)))),n=raw/p,b=n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10;return b*p;}
 function trendScale(v){const lo=Math.min(...v),hi=Math.max(...v),spread=Math.max(hi-lo,Math.abs(hi||1)*.02,1),pad=spread*.1;let step=niceTrendStep((spread+pad*2)/4),bottom=Math.floor((lo-pad)/step)*step,top=bottom+step*4;while(top<hi+pad){step=niceTrendStep(step*1.01);bottom=Math.floor((lo-pad)/step)*step;top=bottom+step*4;}return{bottom,top,ticks:[top,top-step,top-step*2,top-step*3,bottom]};}
 function trendAxisMoney(value){const n=Number(value)||0,sign=n<0?'-':'',abs=Math.abs(n);return abs>=1000?sign+'$'+(abs/1000).toFixed(2)+'k':money(n);}
@@ -196,7 +257,7 @@ normalize();save();render();refresh();
 bindSortTouch();bindTrendTouch();
 function useTradeRecordDateLayout(){const box=document.getElementById('rangeCustom');if(!box)return;box.innerHTML='<div class="date-label-row"><span>開始日期</span><span>結束日期</span></div><div class="record-range"><input id="trendDateFrom" type="date"><input id="trendDateTo" type="date"></div>';document.getElementById('trendDateFrom').addEventListener('change',e=>{window.trendDraftFrom=e.target.value;updateRangePreview();});document.getElementById('trendDateTo').addEventListener('change',e=>{window.trendDraftTo=e.target.value;updateRangePreview();});}
 useTradeRecordDateLayout();
-async function rebuildPortfolioTrend(reason='交易紀錄變更',affectedDate=''){const tx=[...state.transactions].sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id))),today=todayKey(),startDate=[affectedDate,tx[0]?.date].filter(Boolean).sort()[0]||today,first=dateFromKey(startDate),end=dateFromKey(today),coins=activeCoins(),priceMaps={},warnings=[];setRebuildNotice('正在依歷史交易重新計算走勢…');try{if(tx.length)for(const coin of coins)priceMaps[coin.id]=await fetchDailyPrices(coin,first,end);}catch(error){setRebuildNotice('走勢重算失敗：'+error.message,true);$('error').textContent='走勢未變更：'+error.message;$('error').style.display='block';return false;}const before=(state.snapshots||[]).filter(s=>s.date<startDate),rebuilt=[],book=Object.fromEntries(coins.map(c=>[c.id,{qty:0,cost:0,realized:0}]));let cursor=0;for(let day=first;day<=end;day=addDays(day,1)){const date=todayKey(day);while(cursor<tx.length&&tx[cursor].date===date){const t=tx[cursor++],b=book[t.coinId];if(!b)continue;const q=Number(t.qty)||0,p=Number(t.price)||0,f=Number(t.fee)||0;if(t.type==='buy'){b.qty+=q;b.cost+=q*p+f;}else if(q<=b.qty+1e-10){const avg=b.qty?b.cost/b.qty:0;b.realized+=q*p-f-q*avg;b.cost-=q*avg;b.qty-=q;if(b.qty<1e-10){b.qty=0;b.cost=0;}}else warnings.push(date+' · '+coinInfo(t.coinId).symbol+' 賣出數量大於當日持倉');}let value=0,cost=0,realized=0;for(const coin of coins){const b=book[coin.id];cost+=b.cost;realized+=b.realized;if(b.qty<=0)continue;const price=date===today&&Number(state.prices[coin.id]?.price)>0?Number(state.prices[coin.id].price):Number(priceMaps[coin.id]?.[date]);if(!(price>0)){warnings.push(date+' · 缺少 '+(coin.symbol||coinInfo(coin.id).symbol)+' 的 Binance 日線收盤價');break;}value+=b.qty*price;}if(warnings.length)break;const unrealized=value-cost;rebuilt.push({date,total:value+state.cash,unrealized,profit:unrealized+realized,cash:state.cash,source:'rebuild',updated:Date.now()});}if(warnings.length){setRebuildNotice('走勢未重算：歷史資料不完整',true);$('error').textContent='走勢維持原資料。'+warnings.slice(0,8).join('；');$('error').style.display='block';return false;}saveTrendBackup(reason);state.snapshots=[...before,...rebuilt];save();$('error').style.display='none';setRebuildNotice('歷史走勢已重新計算');return true;}
+async function rebuildPortfolioTrend(reason='交易紀錄變更',affectedDate=''){const tx=[...state.transactions].sort((a,b)=>compareTrades(a,b)),today=todayKey(),startDate=[affectedDate,tx[0]?.date].filter(Boolean).sort()[0]||today,first=dateFromKey(startDate),end=dateFromKey(today),coins=activeCoins(),priceMaps={},warnings=[];setRebuildNotice('正在依歷史交易重新計算走勢…');try{if(tx.length)for(const coin of coins)priceMaps[coin.id]=await fetchDailyPrices(coin,first,end);}catch(error){setRebuildNotice('走勢重算失敗：'+error.message,true);$('error').textContent='走勢未變更：'+error.message;$('error').style.display='block';return false;}const before=(state.snapshots||[]).filter(s=>s.date<startDate),rebuilt=[],book=Object.fromEntries(coins.map(c=>[c.id,{qty:0,cost:0,realized:0}]));let cursor=0;for(let day=first;day<=end;day=addDays(day,1)){const date=todayKey(day);while(cursor<tx.length&&tx[cursor].date===date){const t=tx[cursor++],b=book[t.coinId];if(!b)continue;const q=Number(t.qty)||0,p=Number(t.price)||0,f=Number(t.fee)||0;if(t.type==='buy'){b.qty+=q;b.cost+=q*p+f;}else if(q<=b.qty+1e-10){const avg=b.qty?b.cost/b.qty:0;b.realized+=q*p-f-q*avg;b.cost-=q*avg;b.qty-=q;if(b.qty<1e-10){b.qty=0;b.cost=0;}}else warnings.push(date+' · '+coinInfo(t.coinId).symbol+' 賣出數量大於當日持倉');}let value=0,cost=0,realized=0;for(const coin of coins){const b=book[coin.id];cost+=b.cost;realized+=b.realized;if(b.qty<=0)continue;const price=date===today&&Number(state.prices[coin.id]?.price)>0?Number(state.prices[coin.id].price):Number(priceMaps[coin.id]?.[date]);if(!(price>0)){warnings.push(date+' · 缺少 '+(coin.symbol||coinInfo(coin.id).symbol)+' 的 Binance 日線收盤價');break;}value+=b.qty*price;}if(warnings.length)break;const unrealized=value-cost;rebuilt.push({date,total:value+state.cash,unrealized,profit:unrealized+realized,cash:state.cash,source:'rebuild',updated:Date.now()});}if(warnings.length){setRebuildNotice('走勢未重算：歷史資料不完整',true);$('error').textContent='走勢維持原資料。'+warnings.slice(0,8).join('；');$('error').style.display='block';return false;}saveTrendBackup(reason);state.snapshots=[...before,...rebuilt];save();$('error').style.display='none';setRebuildNotice('歷史走勢已重新計算');return true;}
 function renderRecords(){const tx=state.transactions.filter(t=>t.coinId===activeCoinId).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('recordsView').innerHTML=tx.length?tx.map(t=>`<div class="record"><div><strong>${t.type==='buy'?'買進':'賣出'} · ${esc(t.date)}</strong><small>${esc(t.note)||'—'}</small></div><div class="record-value">${fmtQty(t.qty)} @ ${money(+t.price)}<br><small>手續費 ${money(+t.fee||0)}</small><button class="delete-record" data-delete-record="${t.id}">刪除</button></div></div>`).join(''):'<div class="record-empty">尚無交易紀錄</div>';document.querySelectorAll('[data-delete-record]').forEach(b=>b.addEventListener('click',async()=>{const deleted=state.transactions.find(t=>t.id===b.dataset.deleteRecord);if(!deleted||!confirm('確定刪除此筆交易？'))return;state.transactions=state.transactions.filter(t=>t.id!==deleted.id);save();await rebuildPortfolioTrend('刪除交易紀錄',deleted.date);render();renderRecords();}));}
 function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)||state.snapshots.at(-1),metric=state.trendMetric||'total';if(!$('trendReadout'))return;if(!s){$('trendReadout').innerHTML='';return;}const label=metric==='unrealized'?'未實現收益':metric==='profit'?'總收益':'資產',value=Number(s[metric])||0,shownDate=(date||s.date||'').replace(/-/g,'/');$('trendReadout').innerHTML=`<span class="trend-read-label">${label}</span><strong class="trend-read-money ${value>=0?'positive':'negative'}">${money(value)}</strong><span class="trend-read-date">${shownDate}</span>`;}
 </script>
@@ -233,20 +294,27 @@ function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)
     if(status)status.textContent='已登入 '+profile.username+' · '+portfolio.name;
   }
   async function loadAccount(){
-    const {data:{user}}=await supabase.auth.getUser();
-    if(!user)return;
-    const {data:profile}=await supabase.from('profiles').select('*').eq('id',user.id).maybeSingle();
-    const {data:portfolio}=await supabase.from('portfolios').select('*').eq('user_id',user.id).order('created_at').limit(1).maybeSingle();
-    if(profile&&portfolio)openTracker(profile,portfolio);
+    const {data:{user},error:userError}=await supabase.auth.getUser();
+    if(userError)throw userError;if(!user)return;
+    const [{data:profile,error:profileError},{data:portfolio,error:portfolioError}]=await Promise.all([
+      supabase.from('profiles').select('*').eq('id',user.id).maybeSingle(),
+      supabase.from('portfolios').select('*').eq('user_id',user.id).order('created_at').limit(1).maybeSingle()
+    ]);
+    if(profileError||portfolioError)throw profileError||portfolioError;
+    if(!profile||!portfolio)throw Error('找不到帳戶或投資組合資料，請稍後重新登入。');
+    openTracker(profile,portfolio);
   }
   signIn.addEventListener('submit',async event=>{
     event.preventDefault();
     const email=signIn.querySelector('#signInEmail').value;
     const password=signIn.querySelector('#signInPassword').value;
-    showMessage('登入中…');
-    const {error}=await supabase.auth.signInWithPassword({email,password});
-    if(error){showMessage('Email 或密碼不正確，請重新確認。',true);return;}
-    await loadAccount();
+    const button=signIn.querySelector('[type="submit"]');button.disabled=true;showMessage('登入中…');
+    try{
+      const {error}=await supabase.auth.signInWithPassword({email,password});
+      if(error){showMessage(error.code==='invalid_credentials'?'Email 或密碼不正確，請重新確認。':'登入失敗，請檢查網路後再試。',true);return;}
+      await loadAccount();
+    }catch(error){console.error(error);showMessage('帳戶資料載入失敗，請檢查網路後重新按登入。',true);}
+    finally{button.disabled=false;}
   });
   signUp.addEventListener('submit',async event=>{
     event.preventDefault();
@@ -266,61 +334,152 @@ function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)
   signIn.querySelector('[data-auth-mode="signup"]').addEventListener('click',()=>setMode('signup'));
   signUp.querySelector('[data-auth-mode="signin"]').addEventListener('click',()=>setMode('signin'));
   gate.hidden=false;
-  loadAccount();
+  loadAccount().catch(error=>{console.error(error);showMessage('帳戶資料載入失敗，請檢查網路後重新登入。',true);});
 })();
 </script>
 <script>
+function trackedPortfolioState(){
+  return {
+    cash:Number(state.cash)||0,target_total:Number(state.targetTotal)||0,
+    assets:state.coins.map((c,index)=>{const info=coinInfo(c.id);return{asset_key:c.id,symbol:c.symbol||info.symbol,name:c.name||info.name,coingecko_id:c.coingecko||info.coingecko||null,is_watch:!!c.watch,target_weight:Number(state.targets[c.id])||0,sort_order:index};}),
+    transactions:state.transactions.map(t=>({id:t.id,asset_key:t.coinId,trade_type:t.type,traded_on:t.date,quantity:Number(t.qty),price:Number(t.price),fee:Number(t.fee)||0,note:t.note||null,created_at:t.createdAt||null}))
+  };
+}
+function buildPortfolioChanges(before,after,assetRows){
+  const changes={portfolio:{},asset_inserts:[],asset_updates:[],asset_deletes:[],transaction_inserts:[],transaction_deletes:[]};
+  for(const key of ['cash','target_total'])if(before[key]!==after[key])changes.portfolio[key]=after[key];
+  const previousAssets=new Map(before.assets.map(a=>[a.asset_key,a])),currentAssets=new Map(after.assets.map(a=>[a.asset_key,a]));
+  for(const a of after.assets){
+    const old=previousAssets.get(a.asset_key);
+    if(!old){changes.asset_inserts.push(a);continue;}
+    const fields={};for(const key of Object.keys(a))if(key!=='asset_key'&&a[key]!==old[key])fields[key]=a[key];
+    if(Object.keys(fields).length){const row=assetRows.get(a.asset_key);if(!row)throw Error('找不到雲端幣種，請重新載入。');changes.asset_updates.push({id:row.id,fields});}
+  }
+  for(const a of before.assets)if(!currentAssets.has(a.asset_key)){const row=assetRows.get(a.asset_key);if(!row)throw Error('找不到雲端幣種，請重新載入。');changes.asset_deletes.push(row.id);}
+  const oldTx=new Set(before.transactions.map(t=>t.id)),newTx=new Set(after.transactions.map(t=>t.id));
+  changes.transaction_inserts=after.transactions.filter(t=>!oldTx.has(t.id));
+  changes.transaction_deletes=before.transactions.filter(t=>!newTx.has(t.id)).map(t=>t.id);
+  return changes;
+}
+function hasPortfolioChanges(changes){return Object.keys(changes.portfolio).length>0||['asset_inserts','asset_updates','asset_deletes','transaction_inserts','transaction_deletes'].some(key=>changes[key].length>0);}
 (() => {
   const cloud=window.__cryptoTrackerSupabase;
-  let portfolio=null,remoteAssets=new Map(),remoteTx=new Map(),ready=false,timer=null,syncing=false;
-  const setCloudStatus=(text,error=false,ok=false)=>{const status=document.getElementById('statusText'),dot=document.getElementById('statusDot');if(status)status.textContent=text;if(dot)dot.className=error?'dot err':ok?'dot ok':'dot';};
-  const setCloudBusy=busy=>document.querySelectorAll('#refreshBtn,#configBtn,#sortBtn,#dbBtn,#addBottomBtn,#allRecordsBtn').forEach(button=>{if(button)button.disabled=busy;});
-  const assetData=c=>{const info=coinInfo(c.id);return{asset_key:c.id,symbol:c.symbol||info.symbol,name:c.name||info.name,coingecko_id:c.coingecko||info.coingecko||null,is_watch:!!c.watch,target_weight:Number(state.targets[c.id])||0,sort_order:state.coins.indexOf(c)}};
+  let portfolio=null,remoteAssets=new Map(),baseline=null,ready=false,loading=false,timer=null,syncing=false,dirty=false,revision=0,maintenance=false,conflicted=false,syncFinished=Promise.resolve();
+  const status=document.getElementById('statusText'),dot=document.getElementById('statusDot');
+  const retryButton=document.createElement('button');retryButton.type='button';retryButton.className='btn small';retryButton.textContent='重試同步';retryButton.hidden=true;
+  const reloadButton=document.createElement('button');reloadButton.type='button';reloadButton.className='btn small';reloadButton.textContent='載入最新資料';reloadButton.hidden=true;
+  status.insertAdjacentElement('afterend',retryButton);retryButton.insertAdjacentElement('afterend',reloadButton);
+  const setCloudStatus=(text,error=false,ok=false)=>{
+    status.textContent=text;dot.className=error?'dot err':ok?'dot ok':'dot';
+    retryButton.hidden=!error||!dirty||conflicted||!ready;
+    reloadButton.hidden=!conflicted&&(ready||!error);
+  };
+  const setCloudBusy=busy=>{
+    document.querySelectorAll('#refreshBtn,#configBtn,#sortBtn,#dbBtn,#addBottomBtn,#allRecordsBtn').forEach(button=>{button.disabled=busy;});
+    document.querySelectorAll('#cashInput,#targetInput,#tradeForm input,#tradeForm select,#tradeForm button[type="submit"]').forEach(input=>{input.disabled=!ready||loading||maintenance||conflicted;});
+  };
+  const showConflict=()=>{
+    conflicted=true;dirty=true;clearTimeout(timer);saveLocalState();
+    setCloudStatus('其他裝置已更新資料，尚未儲存的修改已保留。請載入最新資料後再修改。',true);
+  };
+  const acceptRemote=result=>{
+    if(!result?.portfolio||!Array.isArray(result.assets)||!Array.isArray(result.transactions))throw Error('雲端回傳資料不完整');
+    portfolio=result.portfolio;remoteAssets=new Map(result.assets.map(a=>[a.asset_key,a]));
+  };
   async function loadCloud(){
-    setCloudBusy(true);setCloudStatus('正在載入雲端資料…');
-    const {data:{user}}=await cloud.auth.getUser();if(!user)return;
-    const {data:p,error}=await cloud.from('portfolios').select('*').eq('user_id',user.id).order('created_at').limit(1).single();
-    if(error){console.error(error);setCloudBusy(false);setCloudStatus('雲端載入失敗：'+error.message,true);return;}portfolio=p;
-    const [{data:assets,error:assetError},{data:tx,error:txError}]=await Promise.all([
-      cloud.from('portfolio_assets').select('*').eq('portfolio_id',p.id).order('sort_order'),
-      cloud.from('transactions').select('*').eq('portfolio_id',p.id).order('traded_on')
-    ]);
-    if(assetError||txError){console.error(assetError||txError);setCloudBusy(false);setCloudStatus('雲端資料載入失敗：'+(assetError||txError).message,true);return;}
-    remoteAssets=new Map((assets||[]).map(a=>[a.asset_key,a]));
-    remoteTx=new Map((tx||[]).map(t=>[t.id,t]));
-    state.coins=(assets||[]).map(a=>({id:a.asset_key,dbId:a.id,symbol:a.symbol,name:a.name,coingecko:a.coingecko_id,watch:a.is_watch}));
-    state.targets=Object.fromEntries((assets||[]).map(a=>[a.asset_key,Number(a.target_weight)||0]));
-    state.transactions=(tx||[]).map(t=>({id:t.id,coinId:(assets||[]).find(a=>a.id===t.portfolio_asset_id)?.asset_key,type:t.trade_type,date:t.traded_on,qty:Number(t.quantity),price:Number(t.price),fee:Number(t.fee),note:t.note||''})).filter(t=>t.coinId);
-    state.cash=Number(p.cash)||0;state.targetTotal=Number(p.target_total)||0;
-    if(state.transactions.length)await rebuildPortfolioTrend('雲端資料載入');else{recordSnapshot();save();}
-    ready=true;render();refresh();
-    setCloudBusy(false);setCloudStatus('已同步雲端資料',false,true);
+    if(loading||syncing||maintenance)return;
+    loading=true;ready=false;setCloudBusy(true);setCloudStatus('正在載入雲端資料…');
+    try{
+      const {data:{user},error:userError}=await cloud.auth.getUser();if(userError)throw userError;if(!user)throw Error('請重新登入。');
+      const {data:p,error:pError}=await cloud.from('portfolios').select('id').eq('user_id',user.id).order('created_at').limit(1).single();if(pError)throw pError;
+      const {data:result,error}=await cloud.rpc('read_tracker_portfolio',{p_portfolio_id:p.id});if(error)throw error;
+      acceptRemote(result);
+      state.coins=result.assets.map(a=>({id:a.asset_key,dbId:a.id,symbol:a.symbol,name:a.name,coingecko:a.coingecko_id,watch:a.is_watch}));
+      state.targets=Object.fromEntries(result.assets.map(a=>[a.asset_key,Number(a.target_weight)||0]));
+      const byId=new Map(result.assets.map(a=>[a.id,a.asset_key]));
+      state.transactions=result.transactions.map(t=>({id:t.id,coinId:byId.get(t.portfolio_asset_id),type:t.trade_type,date:t.traded_on,qty:Number(t.quantity),price:Number(t.price),fee:Number(t.fee),note:t.note||'',createdAt:t.created_at})).filter(t=>t.coinId);
+      state.cash=Number(portfolio.cash)||0;state.targetTotal=Number(portfolio.target_total)||0;
+      baseline=trackedPortfolioState();dirty=false;conflicted=false;
+      if(state.transactions.length)await rebuildPortfolioTrend('雲端資料載入');else{recordSnapshot();saveLocalState();}
+      ready=true;saveLocalState();render();setCloudStatus('已同步雲端資料',false,true);
+      refresh().catch(error=>{console.error(error);setCloudStatus('行情更新失敗，請稍後重試。',true);});
+    }catch(error){console.error(error);setCloudStatus('雲端載入失敗，請檢查網路並按載入最新資料。',true);}
+    finally{loading=false;setCloudBusy(false);}
   }
   async function syncCloud(){
-    if(!ready||syncing||!portfolio)return;syncing=true;setCloudBusy(true);setCloudStatus('正在同步雲端資料…');
+    if(!ready||!portfolio||maintenance||conflicted)return;
+    if(syncing){dirty=true;return;}
+    const snapshot=trackedPortfolioState(),startedRevision=revision;
+    let changes;
+    try{changes=buildPortfolioChanges(baseline,snapshot,remoteAssets);}catch(error){console.error(error);showConflict();return;}
+    if(!hasPortfolioChanges(changes)){dirty=false;setCloudStatus('已同步雲端資料',false,true);return;}
+    syncing=true;dirty=false;
+    let resolveFinished;syncFinished=new Promise(resolve=>{resolveFinished=resolve;});
+    setCloudBusy(true);setCloudStatus('正在同步雲端資料…');
     try{
-      const {error:portfolioUpdateError}=await cloud.from('portfolios').update({cash:state.cash,target_total:state.targetTotal}).eq('id',portfolio.id);if(portfolioUpdateError)throw portfolioUpdateError;
-      const current=new Map(state.coins.map(c=>[c.id,c]));
-      for(const [key,row] of remoteTx)if(!state.transactions.some(t=>t.id===key)){const {error}=await cloud.from('transactions').delete().eq('id',key);if(error)throw error;remoteTx.delete(key);}
-      for(const [key,row] of remoteAssets)if(!current.has(key)){const {error}=await cloud.from('portfolio_assets').delete().eq('id',row.id);if(error)throw error;remoteAssets.delete(key);}
-      for(const c of state.coins){
-        const payload=assetData(c),existing=remoteAssets.get(c.id);
-        if(existing){const {data,error}=await cloud.from('portfolio_assets').update(payload).eq('id',existing.id).select().single();if(error)throw error;remoteAssets.set(c.id,data);c.dbId=data.id;}
-        else{const {data,error}=await cloud.from('portfolio_assets').insert({...payload,portfolio_id:portfolio.id}).select().single();if(error)throw error;remoteAssets.set(c.id,data);c.dbId=data.id;}
-      }
-      for(const t of state.transactions){
-        if(remoteTx.has(t.id))continue;
-        const asset=remoteAssets.get(t.coinId);if(!asset)throw new Error('找不到交易所屬幣種');
-        const {data,error}=await cloud.from('transactions').insert({id:t.id,portfolio_id:portfolio.id,portfolio_asset_id:asset.id,trade_type:t.type,traded_on:t.date,quantity:t.qty,price:t.price,fee:t.fee||0,note:t.note||null}).select().single();
-        if(error)throw error;remoteTx.set(t.id,data);
-      }
-      setCloudStatus('已同步雲端資料',false,true);
-    }catch(error){console.error(error);setCloudStatus('雲端同步失敗：'+error.message,true);}
-    finally{syncing=false;setCloudBusy(false);}
+      const {data:result,error}=await cloud.rpc('save_tracker_changes',{p_portfolio_id:portfolio.id,p_expected_version:portfolio.sync_version,p_changes:changes});
+      if(error)throw error;
+      acceptRemote(result);
+      const created=new Map(result.transactions.map(t=>[t.id,t.created_at]));
+      for(const c of state.coins){const a=remoteAssets.get(c.id);if(a)c.dbId=a.id;}
+      for(const t of state.transactions)if(created.has(t.id))t.createdAt=created.get(t.id);
+      baseline=snapshot;dirty=revision!==startedRevision;saveLocalState();
+      if(!dirty)setCloudStatus('已同步雲端資料',false,true);
+    }catch(error){
+      console.error(error);dirty=true;
+      if(error.code==='PT409'||String(error.message).includes('portfolio_version_conflict'))showConflict();
+      else setCloudStatus('雲端同步失敗，資料尚未全部儲存，請按重試。',true);
+    }finally{
+      syncing=false;setCloudBusy(false);resolveFinished();
+      if(!maintenance&&!conflicted&&revision!==startedRevision){clearTimeout(timer);timer=setTimeout(syncCloud,250);}
+    }
   }
-  window.save=()=>{localStorage.setItem(KEY,JSON.stringify(state));if(!ready)return;clearTimeout(timer);setCloudStatus('等待同步…');timer=setTimeout(syncCloud,250);};
+  window.save=()=>{
+    saveLocalState();if(!ready)return;
+    revision++;
+    try{dirty=hasPortfolioChanges(buildPortfolioChanges(baseline,trackedPortfolioState(),remoteAssets));}catch{dirty=true;}
+    if(maintenance||conflicted)return;
+    if(!dirty){if(!syncing)setCloudStatus('已同步雲端資料',false,true);return;}
+    clearTimeout(timer);setCloudStatus('等待同步…');timer=setTimeout(syncCloud,250);
+  };
   try{save=window.save;}catch{}
-  const watch=setInterval(async()=>{const {data:{user}}=await cloud.auth.getUser();if(user){clearInterval(watch);await loadCloud();}},300);
+  retryButton.addEventListener('click',()=>{if(!syncing&&!maintenance&&!conflicted)syncCloud();});
+  reloadButton.addEventListener('click',async()=>{
+    if(dirty&&!window.confirm('載入雲端最新資料會放棄本機尚未儲存的投資修改。確定要繼續嗎？'))return;
+    clearTimeout(timer);await loadCloud();
+  });
+  window.clearCurrentPortfolio=async()=>{
+    if(!ready||!portfolio||maintenance||conflicted)throw Error('請先載入最新資料，再清空投資組合。');
+    maintenance=true;clearTimeout(timer);setCloudBusy(true);
+    try{
+      await syncFinished;
+      if(conflicted)throw Error('資料已在其他裝置更新，請先載入最新資料。');
+      const {data:result,error}=await cloud.rpc('save_tracker_changes',{p_portfolio_id:portfolio.id,p_expected_version:portfolio.sync_version,p_changes:{clear:true}});
+      if(error){if(error.code==='PT409'||String(error.message).includes('portfolio_version_conflict'))showConflict();throw error;}
+      acceptRemote(result);
+      state.coins=[];state.targets={};state.transactions=[];state.cash=0;state.targetTotal=0;
+      state.snapshots=[];state.trendBackups=[];state.historicalPrices={};state.prices={};state.icons={};
+      baseline=trackedPortfolioState();dirty=false;saveLocalState();render();document.getElementById('updatedAt').textContent='尚未更新';setCloudStatus('投資組合已清空',false,true);
+    }finally{maintenance=false;setCloudBusy(false);if(dirty&&!conflicted){clearTimeout(timer);timer=setTimeout(syncCloud,250);}}
+  };
+  async function checkRemoteVersion(){
+    if(!ready||loading||syncing||maintenance||conflicted||document.hidden)return;
+    if(dirty){syncCloud();return;}
+    try{
+      const {data,error}=await cloud.from('portfolios').select('sync_version').eq('id',portfolio.id).single();if(error)throw error;
+      if(!dirty&&!syncing&&!loading&&!maintenance&&!conflicted&&data.sync_version!==portfolio.sync_version)await loadCloud();
+    }catch(error){console.error(error);setCloudStatus('暫時無法確認雲端版本，請檢查網路。',true);}
+  }
+  window.addEventListener('online',()=>{if(dirty)syncCloud();else checkRemoteVersion();});
+  window.addEventListener('focus',checkRemoteVersion);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkRemoteVersion();});
+  let checking=false;
+  const watch=setInterval(async()=>{
+    if(checking)return;checking=true;
+    try{const {data:{user}}=await cloud.auth.getUser();if(user){clearInterval(watch);await loadCloud();}}
+    catch(error){console.error(error);setCloudStatus('登入狀態確認失敗，請重新登入。',true);}
+    finally{checking=false;}
+  },300);
 })();
 </script>
 <script>
@@ -416,9 +575,7 @@ function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)
     if(!window.confirm('所有幣種、交易紀錄、現金與總目標都會被重設，且無法復原。確定要繼續嗎？'))return;
     button.disabled=true;button.textContent='清空中…';
     try{
-      const {error}=await client.rpc('clear_my_portfolio');
-      if(error)throw error;
-      state.coins=[];state.targets={};state.transactions=[];state.cash=0;state.targetTotal=0;save();render();
+      await window.clearCurrentPortfolio();
       document.getElementById('dbModal')?.classList.remove('show');
       const status=document.getElementById('statusText');if(status)status.textContent='投資組合已清空';
     }catch(error){alert('清空失敗：'+error.message);}
@@ -436,6 +593,11 @@ function renderFearGreed(){const valueEl=$('fearGreedValue'),labelEl=$('fearGree
 function compactFearGreedMeta(){const meta=document.getElementById('fearGreedMeta');if(!meta)return;const f=typeof state!=='undefined'?state.fearGreed:null;const date=f?.timestamp?new Date(f.timestamp).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}):'';const prefix=date?(f?.error?'上次更新 ':'更新 ')+date:'尚未更新';meta.innerHTML=prefix+' ・來源：<a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener noreferrer" aria-label="Alternative.me Fear and Greed Index 官方來源" title="Alternative.me Fear and Greed Index">Alternative.me ↗</a>';}
 document.addEventListener('DOMContentLoaded',()=>{const meta=document.getElementById('fearGreedMeta');if(!meta)return;new MutationObserver(()=>{if(meta.textContent.includes('Fear & Greed Index'))compactFearGreedMeta();}).observe(meta,{childList:true,subtree:true,characterData:true});compactFearGreedMeta();});
 </script>
+<script>
+window.matchMedia('(max-width:560px)').addEventListener('change',()=>{
+  const guide=document.getElementById('cashGuide');
+  if(guide)guide.innerHTML=investmentGuide(entriesNow());
+});
+</script>
 </body>
 </html>
-
