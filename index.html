@@ -12,7 +12,8 @@
 <title>CRYPTO-TRACKER</title>
 <style>
 :root{--bg:#0b1020;--panel:#121a2e;--line:#263352;--text:#edf2ff;--muted:#98a6c7;--cyan:#57d9ff;--green:#55d69b;--yellow:#f6c85f;--red:#ff7287;--purple:#a98cff}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% -10%,#1b2850 0,#0b1020 42%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Noto Sans TC",sans-serif}main{max-width:1240px;margin:auto;padding:28px 18px 48px}
+html{min-height:100%;background-color:var(--bg)}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020 radial-gradient(circle at 10% -10%,#1b2850 0,#0b1020 42%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Noto Sans TC",sans-serif}main{max-width:1240px;margin:auto;padding:28px 18px 48px}
 header,.section-head,.card-foot,.coin-top,.modal-head,.advice-top,.sort-row{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}h1{font-size:clamp(25px,4vw,38px);margin:0 0 7px;letter-spacing:.055em}.brand-crypto{color:var(--text)}.brand-sep{color:var(--muted);margin:0 .02em}.brand-tracker{color:var(--cyan)}h2{font-size:17px;margin:0 0 16px}h3{font-size:14px;margin:0}.subtitle,.muted{color:var(--muted);font-size:13px}.actions,.card-actions,.preset-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .btn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:8px;padding:10px 13px;font-weight:650;cursor:pointer}.btn:hover{border-color:var(--cyan)}.btn:disabled{opacity:.6;cursor:not-allowed}.btn.primary{background:var(--cyan);border-color:var(--cyan);color:#071323}.btn.ghost{background:transparent}.btn.small{padding:7px 9px;font-size:12px}
 .status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin-top:10px}.dot{width:8px;height:8px;border-radius:50%;background:var(--yellow)}.dot.ok{background:var(--green)}.dot.err{background:var(--red)}
