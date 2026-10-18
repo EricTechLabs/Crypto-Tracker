@@ -117,6 +117,11 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 #trendRangeModal .range-custom input::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer}
 @media(max-width:560px){#trendRangeModal .range-custom{gap:10px}#trendRangeModal .range-custom input{padding:10px 7px}}
 </style>
+<style>
+.modal{overscroll-behavior:none}
+.modal-box{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+@supports(height:100dvh){.modal-box{max-height:calc(100dvh - 36px)}}
+</style>
 </head>
 <style>
 @media(max-width:560px){
@@ -604,6 +609,76 @@ window.matchMedia('(max-width:560px)').addEventListener('change',()=>{
   const guide=document.getElementById('cashGuide');
   if(guide)guide.innerHTML=investmentGuide(entriesNow());
 });
+</script>
+<script>
+(() => {
+  const root=document.documentElement,body=document.body;
+  const savedLayers=new Map();
+  let locked=false,savedPage=null,stack=[],touchX=0,touchY=0;
+  const saveStyle=(el,names)=>names.map(name=>[name,el.style.getPropertyValue(name),el.style.getPropertyPriority(name)]);
+  const restoreStyle=(el,values)=>values.forEach(([name,value,priority])=>{if(value)el.style.setProperty(name,value,priority);else el.style.removeProperty(name);});
+  function lockPage(){
+    if(locked)return;
+    const x=window.scrollX,y=window.scrollY,gutter=Math.max(0,window.innerWidth-root.clientWidth);
+    savedPage={x,y,body:saveStyle(body,['position','top','left','right','width','overflow','padding-right']),root:saveStyle(root,['overflow','overscroll-behavior','scroll-behavior'])};
+    const padding=parseFloat(getComputedStyle(body).paddingRight)||0;
+    locked=true;
+    root.style.setProperty('overflow','hidden','important');root.style.setProperty('overscroll-behavior','none','important');
+    body.style.setProperty('position','fixed','important');body.style.setProperty('top',-y+'px','important');body.style.setProperty('left',-x+'px','important');body.style.setProperty('right','0','important');body.style.setProperty('width','100%','important');body.style.setProperty('overflow','hidden','important');
+    if(gutter)body.style.setProperty('padding-right',padding+gutter+'px','important');
+  }
+  function unlockPage(){
+    if(!locked||!savedPage)return;
+    const saved=savedPage;locked=false;savedPage=null;
+    restoreStyle(body,saved.body);restoreStyle(root,saved.root);
+    root.style.setProperty('scroll-behavior','auto','important');
+    window.scrollTo(saved.x,saved.y);
+    const previous=saved.root.find(([name])=>name==='scroll-behavior');
+    restoreStyle(root,[previous]);
+  }
+  function syncModalScrollLock(){
+    const visible=[...document.querySelectorAll('.modal.show')].filter(modal=>!modal.hidden);
+    stack=stack.filter(modal=>visible.includes(modal));
+    for(const modal of visible){
+      if(!stack.includes(modal))stack.push(modal);
+      if(!savedLayers.has(modal))savedLayers.set(modal,saveStyle(modal,['z-index']));
+    }
+    for(const [modal,previous] of savedLayers)if(!visible.includes(modal)){restoreStyle(modal,previous);savedLayers.delete(modal);}
+    stack.forEach((modal,index)=>modal.style.setProperty('z-index',String(100+index),'important'));
+    if(stack.length)lockPage();else unlockPage();
+  }
+  function canScroll(target,delta){
+    const top=stack.at(-1);
+    if(!top||!(target instanceof Element)||!top.contains(target))return false;
+    let el=target;
+    while(el&&el!==top){
+      if(/auto|scroll/.test(getComputedStyle(el).overflowY)&&el.scrollHeight>el.clientHeight+1){
+        if(delta>0&&el.scrollTop+el.clientHeight<el.scrollHeight-1)return true;
+        if(delta<0&&el.scrollTop>0)return true;
+      }
+      el=el.parentElement;
+    }
+    return false;
+  }
+  document.addEventListener('touchstart',event=>{
+    if(event.touches.length===1){touchX=event.touches[0].clientX;touchY=event.touches[0].clientY;}
+  },{passive:true});
+  document.addEventListener('touchmove',event=>{
+    if(!locked||event.defaultPrevented||event.touches.length!==1)return;
+    const touch=event.touches[0],dx=touchX-touch.clientX,dy=touchY-touch.clientY;
+    touchX=touch.clientX;touchY=touch.clientY;
+    if(Math.abs(dx)>Math.abs(dy)&&stack.at(-1)?.contains(event.target))return;
+    if(!canScroll(event.target,dy)&&event.cancelable)event.preventDefault();
+  },{passive:false});
+  document.addEventListener('wheel',event=>{
+    if(!locked||event.defaultPrevented||event.ctrlKey)return;
+    if(Math.abs(event.deltaX)>Math.abs(event.deltaY)&&stack.at(-1)?.contains(event.target))return;
+    if(!canScroll(event.target,event.deltaY)&&event.cancelable)event.preventDefault();
+  },{passive:false});
+  const observer=new MutationObserver(syncModalScrollLock);
+  observer.observe(body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden']});
+  syncModalScrollLock();
+})();
 </script>
 </body>
 </html>
