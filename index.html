@@ -108,10 +108,12 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 <style>
 #trendRangeModal .range-custom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px;width:100%}
 #trendRangeModal .range-custom[hidden]{display:none}
-#trendRangeModal .range-custom .field{display:flex;flex-direction:column;gap:8px;min-width:0}
+#trendRangeModal .range-custom .field{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0;width:100%;max-width:100%;overflow:hidden}
 #trendRangeModal .range-custom label{font-size:12px;color:var(--muted)}
-#trendRangeModal .range-custom input{display:block;min-width:0;width:100%;max-width:100%;margin:0;background:#0c1427;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px 10px;min-height:46px;font-family:inherit;font-size:16px;color-scheme:dark}
-#trendRangeModal .range-custom input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+#trendRangeModal .range-custom input{display:block;-webkit-appearance:none;appearance:none;box-sizing:border-box;min-width:0;width:100%;max-width:100%;min-inline-size:0;inline-size:100%;max-inline-size:100%;margin:0;overflow:hidden;background:#0c1427;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px 10px;min-height:46px;font-family:inherit;font-size:16px;color-scheme:dark}
+#trendRangeModal .range-custom input:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+#trendRangeModal .range-custom input::-webkit-date-and-time-value{text-align:left;min-width:0;margin:0}
+#trendRangeModal .range-custom input::-webkit-datetime-edit{min-width:0;padding:0}
 #trendRangeModal .range-custom input::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer}
 @media(max-width:560px){#trendRangeModal .range-custom{gap:10px}#trendRangeModal .range-custom input{padding:10px 7px}}
 </style>
