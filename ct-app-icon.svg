@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Crypto Tracker CT">
+  <title>Crypto Tracker</title>
+  <rect width="512" height="512" fill="#0b1020"/>
+  <g transform="translate(61.555555556 61.555555556) scale(3.888888889)">
+    <path fill="#edf2ff" d="M78 18H35C23 18 14 28 14 40v20c0 12 9 22 21 22h43L64 68H39c-5 0-9-4-9-9V41c0-5 4-9 9-9h25z"/>
+    <path fill="#57d9ff" d="M34 43h52L74 55H64v27H48V55H34z"/>
+  </g>
+</svg>
