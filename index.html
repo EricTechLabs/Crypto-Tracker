@@ -128,7 +128,9 @@ header{margin-bottom:18px}.sort-row,.handle{user-select:none;-webkit-user-select
 #appMessageModal .modal-box{width:min(440px,100%)}
 #appMessageModal .app-dialog-message{margin:16px 0 0;color:var(--text);font-size:14px;line-height:1.8;white-space:pre-line;overflow-wrap:anywhere}
 #appMessageModal .modal-actions{flex-wrap:wrap}
-#appMessageModal .modal-actions .btn{min-height:44px;min-width:80px}
+#appMessageModal .modal-actions .btn{min-height:44px;min-width:80px;padding:10px 16px}
+#appMessageModal .btn.danger{background:transparent;border-color:var(--line);color:#ffacbd}
+#appMessageModal .btn.danger:hover{border-color:#ffacbd;background:rgba(255,172,189,.06)}
 </style>
 </head>
 <style>
@@ -276,7 +278,7 @@ window.addEventListener('resize',()=>renderTrend());
 normalize();save();render();refresh();
 bindSortTouch();bindTrendTouch();
 async function rebuildPortfolioTrend(reason='交易紀錄變更',affectedDate=''){const tx=[...state.transactions].sort((a,b)=>compareTrades(a,b)),today=todayKey(),startDate=[affectedDate,tx[0]?.date].filter(Boolean).sort()[0]||today,first=dateFromKey(startDate),end=dateFromKey(today),coins=activeCoins(),priceMaps={},warnings=[];setRebuildNotice('正在依歷史交易重新計算走勢…');try{if(tx.length)for(const coin of coins)priceMaps[coin.id]=await fetchDailyPrices(coin,first,end);}catch(error){setRebuildNotice('走勢重算失敗：'+error.message,true);$('error').textContent='走勢未變更：'+error.message;$('error').style.display='block';return false;}const before=(state.snapshots||[]).filter(s=>s.date<startDate),rebuilt=[],book=Object.fromEntries(coins.map(c=>[c.id,{qty:0,cost:0,realized:0}]));let cursor=0;for(let day=first;day<=end;day=addDays(day,1)){const date=todayKey(day);while(cursor<tx.length&&tx[cursor].date===date){const t=tx[cursor++],b=book[t.coinId];if(!b)continue;const q=Number(t.qty)||0,p=Number(t.price)||0,f=Number(t.fee)||0;if(t.type==='buy'){b.qty+=q;b.cost+=q*p+f;}else if(q<=b.qty+1e-10){const avg=b.qty?b.cost/b.qty:0;b.realized+=q*p-f-q*avg;b.cost-=q*avg;b.qty-=q;if(b.qty<1e-10){b.qty=0;b.cost=0;}}else warnings.push(date+' · '+coinInfo(t.coinId).symbol+' 賣出數量大於當日持倉');}let value=0,cost=0,realized=0;for(const coin of coins){const b=book[coin.id];cost+=b.cost;realized+=b.realized;if(b.qty<=0)continue;const price=date===today&&Number(state.prices[coin.id]?.price)>0?Number(state.prices[coin.id].price):Number(priceMaps[coin.id]?.[date]);if(!(price>0)){warnings.push(date+' · 缺少 '+(coin.symbol||coinInfo(coin.id).symbol)+' 的 Binance 日線收盤價');break;}value+=b.qty*price;}if(warnings.length)break;const unrealized=value-cost;rebuilt.push({date,total:value+state.cash,unrealized,profit:unrealized+realized,cash:state.cash,source:'rebuild',updated:Date.now()});}if(warnings.length){setRebuildNotice('走勢未重算：歷史資料不完整',true);$('error').textContent='走勢維持原資料。'+warnings.slice(0,8).join('；');$('error').style.display='block';return false;}saveTrendBackup(reason);state.snapshots=[...before,...rebuilt];save();$('error').style.display='none';setRebuildNotice('歷史走勢已重新計算');return true;}
-function renderRecords(){const tx=state.transactions.filter(t=>t.coinId===activeCoinId).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('recordsView').innerHTML=tx.length?tx.map(t=>`<div class="record"><div><strong>${t.type==='buy'?'買進':'賣出'} · ${esc(t.date)}</strong><small>${esc(t.note)||'—'}</small></div><div class="record-value">${fmtQty(t.qty)} @ ${money(+t.price)}<br><small>手續費 ${money(+t.fee||0)}</small><button class="delete-record" data-delete-record="${t.id}">刪除</button></div></div>`).join(''):'<div class="record-empty">尚無交易紀錄</div>';document.querySelectorAll('[data-delete-record]').forEach(b=>b.addEventListener('click',async()=>{const deleted=state.transactions.find(t=>t.id===b.dataset.deleteRecord);if(!deleted||!(await appConfirm('確定刪除此筆交易？')))return;state.transactions=state.transactions.filter(t=>t.id!==deleted.id);save();await rebuildPortfolioTrend('刪除交易紀錄',deleted.date);render();renderRecords();}));}
+function renderRecords(){const tx=state.transactions.filter(t=>t.coinId===activeCoinId).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('recordsView').innerHTML=tx.length?tx.map(t=>`<div class="record"><div><strong>${t.type==='buy'?'買進':'賣出'} · ${esc(t.date)}</strong><small>${esc(t.note)||'—'}</small></div><div class="record-value">${fmtQty(t.qty)} @ ${money(+t.price)}<br><small>手續費 ${money(+t.fee||0)}</small><button class="delete-record" data-delete-record="${t.id}">刪除</button></div></div>`).join(''):'<div class="record-empty">尚無交易紀錄</div>';document.querySelectorAll('[data-delete-record]').forEach(b=>b.addEventListener('click',async()=>{const deleted=state.transactions.find(t=>t.id===b.dataset.deleteRecord);if(!deleted||!(await appConfirm('確定刪除此筆交易？',{danger:true,confirmText:'確認刪除'})))return;state.transactions=state.transactions.filter(t=>t.id!==deleted.id);save();await rebuildPortfolioTrend('刪除交易紀錄',deleted.date);render();renderRecords();}));}
 function updateTrendReadout(date){const s=state.snapshots.find(x=>x.date===date)||state.snapshots.at(-1),metric=state.trendMetric||'total';if(!$('trendReadout'))return;if(!s){$('trendReadout').innerHTML='';return;}const label=metric==='unrealized'?'未實現收益':metric==='profit'?'總收益':'資產',value=Number(s[metric])||0,shownDate=(date||s.date||'').replace(/-/g,'/');$('trendReadout').innerHTML=`<span class="trend-read-label">${label}</span><strong class="trend-read-money ${value>=0?'positive':'negative'}">${money(value)}</strong><span class="trend-read-date">${shownDate}</span>`;}
 </script>
 <style>
@@ -590,8 +592,8 @@ function hasPortfolioChanges(changes){return Object.keys(changes.portfolio).leng
   const button=oldButton.cloneNode(true);
   oldButton.replaceWith(button);
   button.addEventListener('click',async()=>{
-    if(!(await appConfirm('確定要清空目前投資組合嗎？')))return;
-    if(!(await appConfirm('所有幣種、交易紀錄、現金與總目標都會被重設，且無法復原。確定要繼續嗎？')))return;
+    if(!(await appConfirm('確定要清空目前投資組合嗎？',{danger:true,confirmText:'確認清空'})))return;
+    if(!(await appConfirm('所有幣種、交易紀錄、現金與總目標都會被重設，且無法復原。確定要繼續嗎？',{danger:true,confirmText:'確認清空'})))return;
     button.disabled=true;button.textContent='清空中…';
     try{
       await window.clearCurrentPortfolio();
@@ -690,8 +692,8 @@ window.matchMedia('(max-width:560px)').addEventListener('change',()=>{
 </script>
 <script>
 function appAlert(message){return appMessageDialog(message,false);}
-function appConfirm(message){return appMessageDialog(message,true);}
-function appMessageDialog(message,confirmMode){
+function appConfirm(message,options={}){return appMessageDialog(message,true,options);}
+function appMessageDialog(message,confirmMode,options={}){
   if(!window.cryptoMessageDialogs){
     const modal=document.createElement('div');
     modal.id='appMessageModal';modal.className='modal';
@@ -706,7 +708,9 @@ function appMessageDialog(message,confirmMode){
       if(active||!queue.length)return;
       active=queue.shift();active.previousFocus=document.activeElement;
       title.textContent=active.confirmMode?'確認操作':'提示';
-      text.textContent=active.message;cancel.hidden=!active.confirmMode;accept.textContent=active.confirmMode?'確認':'關閉';
+      text.textContent=active.message;cancel.hidden=!active.confirmMode;
+      accept.textContent=active.confirmMode?(active.options.confirmText||'確認'):'關閉';
+      accept.className=active.confirmMode&&active.options.danger?'btn danger':'btn primary';
       modal.classList.add('show');
       (active.confirmMode?cancel:accept).focus({preventScroll:true});
     }
@@ -728,9 +732,9 @@ function appMessageDialog(message,confirmMode){
       if(event.shiftKey&&index<=0){event.preventDefault();buttons.at(-1).focus();}
       else if(!event.shiftKey&&(index===buttons.length-1||index<0)){event.preventDefault();buttons[0].focus();}
     });
-    window.cryptoMessageDialogs={enqueue(message,confirmMode){return new Promise(resolve=>{queue.push({message:String(message),confirmMode,resolve});showNext();});}};
+    window.cryptoMessageDialogs={enqueue(message,confirmMode,options){return new Promise(resolve=>{queue.push({message:String(message),confirmMode,options,resolve});showNext();});}};
   }
-  return window.cryptoMessageDialogs.enqueue(message,confirmMode);
+  return window.cryptoMessageDialogs.enqueue(message,confirmMode,options);
 }
 </script>
 </body>
