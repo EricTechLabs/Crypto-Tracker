@@ -1,6 +1,6 @@
 {
-  "name": "CRYPTO-TRACKER",
-  "short_name": "CRYPTO-TRACKER",
+  "name": "加密貨幣資產追蹤",
+  "short_name": "加密貨幣資產追蹤",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0b1020",
